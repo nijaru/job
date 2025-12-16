@@ -6,7 +6,7 @@ members = ["crates/*"]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/nijaru/job"
+repository = "https://github.com/nijaru/jb"
 authors = ["Nick Jaru"]
 
 [workspace.dependencies]
