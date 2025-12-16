@@ -1,180 +1,70 @@
-# jb - Background Job Manager
+---
+name: jb
+description: Background job manager for long-running commands. Use when running builds, tests, deployments, or any command >30s that should survive session disconnect.
+---
 
-Use `jb` to run tasks that should:
+# jb
 
-- Survive session end
-- Run longer than 30 seconds
-- Execute in parallel with other work
+## Decision
 
-## Quick Reference
+Use `jb run` instead of bash when:
 
-| Command          | Purpose              |
-| ---------------- | -------------------- |
-| `jb run "cmd"`   | Start background job |
-| `jb list`        | List project jobs    |
-| `jb status <id>` | Job details          |
-| `jb status`      | System status        |
-| `jb logs <id>`   | View output          |
-| `jb stop <id>`   | Stop a job           |
-| `jb wait <id>`   | Block until done     |
-| `jb retry <id>`  | Re-run a job         |
-| `jb clean`       | Remove old jobs      |
+- Command takes >30 seconds
+- Process should survive session disconnect
+- Running multiple tasks in parallel
+- Need to check output later
 
-## Starting Jobs
+Do NOT use for: quick commands (<10s), interactive/TTY, stdin-dependent.
+
+## Commands
 
 ```bash
-# Basic usage - returns job ID immediately
-jb run "pytest tests/"
+jb run "cmd"                    # Start, returns ID immediately
+jb run "cmd" --wait             # Start and block
+jb run "cmd" --name build       # Named reference
+jb run "cmd" --timeout 30m      # With timeout
+jb run "cmd" --key "unique"     # Idempotent
 
-# With name for easy reference
-jb run "make build" --name build
+jb list                         # Current project jobs
+jb list --all                   # All projects
+jb list --status running        # Filter: pending|running|completed|failed|stopped
 
-# With timeout
-jb run "npm test" --timeout 30m
+jb status <id>                  # Job details
+jb status                       # Daemon status
 
-# With context metadata (for your own tracking)
-jb run "deploy.sh" --context '{"pr": 123, "env": "staging"}'
+jb logs <id>                    # Full output
+jb logs <id> --tail             # Last 50 lines
+jb logs <id> --follow           # Stream live
 
-# Idempotent - won't create duplicate if key exists
-jb run "pytest" --key "test-$(git rev-parse HEAD)"
+jb stop <id>                    # Graceful (SIGTERM)
+jb stop <id> --force            # Kill (SIGKILL)
 
-# Wait for completion (blocks)
-jb run "pytest" --wait
+jb wait <id>                    # Block until done
+jb wait <id> --timeout 5m       # Exit: 0=success, 1=failed, 124=timeout
+
+jb retry <id>                   # Re-run failed job
+
+jb clean                        # Remove >7 days old
+jb clean --older-than 1d
 ```
-
-## Listing Jobs
-
-```bash
-# List jobs for current project (default)
-jb list
-
-# List all jobs across all projects
-jb list --all
-
-# Filter by status
-jb list --status running
-jb list --status failed
-
-# JSON output for parsing
-jb list --json
-```
-
-## Checking Status
-
-```bash
-# System status (no ID)
-jb status
-
-# Job details
-jb status abc123
-jb status build  # by name if unique
-
-# JSON output
-jb status abc123 --json
-```
-
-## Viewing Logs
-
-```bash
-# Full output
-jb logs abc123
-
-# Last 50 lines (default with --tail)
-jb logs abc123 --tail
-
-# Last N lines
-jb logs abc123 --tail 100
-
-# Stream live output (follow mode)
-jb logs abc123 --follow
-```
-
-## Stopping Jobs
-
-```bash
-# Graceful stop (SIGTERM)
-jb stop abc123
-
-# Force kill (SIGKILL)
-jb stop abc123 --force
-```
-
-## Waiting for Completion
-
-```bash
-# Block until job finishes
-jb wait abc123
-
-# With timeout
-jb wait abc123 --timeout 5m
-```
-
-Exit codes:
-
-- `0` - Job completed successfully
-- `1` - Job failed
-- `124` - Timeout reached (job still running)
 
 ## Patterns
 
-### Fire and Forget
-
 ```bash
-jb run "make build" --name build
-# Continue with other work...
-```
-
-### Run Multiple in Parallel
-
-```bash
+# Parallel execution
 jb run "npm test" --name tests
 jb run "npm run lint" --name lint
-jb run "npm run typecheck" --name types
+jb run "cargo build" --name build
+jb list  # check progress
 
-# Check results later
+# Wait for all
+jb wait tests && jb wait lint && jb wait build
+
+# Resume after break
 jb list
-```
-
-### Wait for Multiple Jobs
-
-```bash
-jb wait tests && jb wait lint && jb wait types
-```
-
-### Check Project Jobs After Break
-
-```bash
-# See what's running/completed in this project
-jb list
-
-# Check specific job output
 jb logs <id> --tail
 ```
 
-### Retry Failed Job
-
-```bash
-jb retry abc123
-# Creates new job with same command/config
-```
-
-## When NOT to Use
-
-- Quick commands (<10 seconds)
-- Interactive commands requiring TTY
-- Commands that need user input
-
 ## Storage
 
-Jobs are stored in `~/.jb/`:
-
-- `job.db` - SQLite database
-- `logs/` - Job output files
-
-Clean up old jobs:
-
-```bash
-jb clean                    # Remove jobs older than 7 days
-jb clean --older-than 1d    # Custom retention
-jb clean --all              # Remove all non-running jobs
-```
+`~/.jb/` contains database and logs. Run `jb clean` periodically.

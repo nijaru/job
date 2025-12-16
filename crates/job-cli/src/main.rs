@@ -3,6 +3,7 @@ mod commands;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "jb")]
@@ -130,8 +131,14 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum SkillsAction {
-    /// Install skills to ~/.claude/skills/job/
-    Install,
+    /// Install skills to ~/.claude/skills/jb/ (or custom path)
+    Install {
+        /// Custom installation directory
+        #[arg(long)]
+        path: Option<PathBuf>,
+    },
+    /// Print skill content to stdout
+    Show,
 }
 
 #[tokio::main]
