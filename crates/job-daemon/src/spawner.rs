@@ -10,6 +10,8 @@ use tokio::process::Command;
 use tokio::sync::oneshot;
 use tracing::{error, info};
 
+#[allow(clippy::too_many_arguments)] // TODO: refactor to use struct
+#[allow(clippy::unused_async)] // async for consistency with other handlers
 pub async fn spawn_job(
     state: &Arc<DaemonState>,
     command: String,
@@ -48,7 +50,7 @@ pub async fn spawn_job(
     {
         let db = state.db.lock().unwrap();
         if let Err(e) = db.insert(&job) {
-            return Response::Error(format!("Failed to create job: {}", e));
+            return Response::Error(format!("Failed to create job: {e}"));
         }
     }
 
@@ -210,7 +212,7 @@ pub async fn stop_job(state: &Arc<DaemonState>, job_id: &str, force: bool) -> Re
     };
 
     let Some(mut job) = removed else {
-        return Response::Error(format!("Job {} is not running", job_id));
+        return Response::Error(format!("Job {job_id} is not running"));
     };
 
     // Kill the process
@@ -221,7 +223,7 @@ pub async fn stop_job(state: &Arc<DaemonState>, job_id: &str, force: bool) -> Re
     };
 
     if let Err(e) = kill_result {
-        return Response::Error(format!("Failed to stop job: {}", e));
+        return Response::Error(format!("Failed to stop job: {e}"));
     }
 
     // Update DB
@@ -256,7 +258,7 @@ pub async fn wait_for_job(
                     return Response::Job(job);
                 }
             }
-            Ok(None) => return Response::Error(format!("Job not found: {}", job_id)),
+            Ok(None) => return Response::Error(format!("Job not found: {job_id}")),
             Err(e) => return Response::Error(e.to_string()),
         }
 

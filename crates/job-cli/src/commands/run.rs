@@ -53,7 +53,7 @@ pub async fn execute(
             Ok(())
         }
         Response::Error(e) => {
-            anyhow::bail!("{}", e);
+            anyhow::bail!("{e}");
         }
         _ => {
             anyhow::bail!("Unexpected response from daemon");
@@ -80,7 +80,7 @@ async fn wait_for_job(client: &mut DaemonClient, job_id: &str, json: bool) -> Re
             Ok(())
         }
         Response::Error(e) => {
-            anyhow::bail!("Wait failed: {}", e);
+            anyhow::bail!("Wait failed: {e}");
         }
         _ => {
             anyhow::bail!("Unexpected response");
@@ -90,13 +90,13 @@ async fn wait_for_job(client: &mut DaemonClient, job_id: &str, json: bool) -> Re
 
 fn parse_duration(s: &str) -> Result<u64> {
     let s = s.trim();
-    let (num, unit) = if s.ends_with("s") {
+    let (num, unit) = if s.ends_with('s') {
         (&s[..s.len() - 1], 1u64)
-    } else if s.ends_with("m") {
+    } else if s.ends_with('m') {
         (&s[..s.len() - 1], 60u64)
-    } else if s.ends_with("h") {
+    } else if s.ends_with('h') {
         (&s[..s.len() - 1], 3600u64)
-    } else if s.ends_with("d") {
+    } else if s.ends_with('d') {
         (&s[..s.len() - 1], 86400u64)
     } else {
         anyhow::bail!("Invalid duration format. Use: 30s, 5m, 1h, 7d");

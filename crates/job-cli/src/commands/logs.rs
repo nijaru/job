@@ -7,20 +7,17 @@ pub async fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()
     let db = Database::open(&paths)?;
 
     let job = db.get(&id)?;
-    let job = match job {
-        Some(j) => j,
-        None => {
-            let by_name = db.get_by_name(&id)?;
-            match by_name.len() {
-                0 => anyhow::bail!("No job found with ID or name '{}'", id),
-                1 => by_name.into_iter().next().unwrap(),
-                _ => {
-                    eprintln!("Multiple jobs named '{}'. Use ID instead:", id);
-                    for j in by_name {
-                        eprintln!("  {} ({})", j.short_id(), j.status);
-                    }
-                    anyhow::bail!("Ambiguous job name");
+    let job = if let Some(j) = job { j } else {
+        let by_name = db.get_by_name(&id)?;
+        match by_name.len() {
+            0 => anyhow::bail!("No job found with ID or name '{id}'"),
+            1 => by_name.into_iter().next().unwrap(),
+            _ => {
+                eprintln!("Multiple jobs named '{id}'. Use ID instead:");
+                for j in by_name {
+                    eprintln!("  {} ({})", j.short_id(), j.status);
                 }
+                anyhow::bail!("Ambiguous job name");
             }
         }
     };
@@ -49,7 +46,7 @@ pub async fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()
     };
 
     for line in output_lines {
-        println!("{}", line);
+        println!("{line}");
     }
 
     Ok(())

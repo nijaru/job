@@ -9,20 +9,17 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
 
     // Resolve job ID/name
     let job = db.get(&id)?;
-    let job = match job {
-        Some(j) => j,
-        None => {
-            let by_name = db.get_by_name(&id)?;
-            match by_name.len() {
-                0 => anyhow::bail!("No job found with ID or name '{}'", id),
-                1 => by_name.into_iter().next().unwrap(),
-                _ => {
-                    eprintln!("Multiple jobs named '{}'. Use ID instead:", id);
-                    for j in by_name {
-                        eprintln!("  {} ({})", j.short_id(), j.status);
-                    }
-                    anyhow::bail!("Ambiguous job name");
+    let job = if let Some(j) = job { j } else {
+        let by_name = db.get_by_name(&id)?;
+        match by_name.len() {
+            0 => anyhow::bail!("No job found with ID or name '{id}'"),
+            1 => by_name.into_iter().next().unwrap(),
+            _ => {
+                eprintln!("Multiple jobs named '{id}'. Use ID instead:");
+                for j in by_name {
+                    eprintln!("  {} ({})", j.short_id(), j.status);
                 }
+                anyhow::bail!("Ambiguous job name");
             }
         }
     };
@@ -50,7 +47,7 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
                     eprintln!("Timeout - job still running");
                     std::process::exit(124);
                 }
-                anyhow::bail!("{}", e);
+                anyhow::bail!("{e}");
             }
             _ => {}
         }
@@ -84,7 +81,7 @@ fn handle_terminal(job: &jb_core::Job) -> Result<()> {
             Ok(())
         }
         Some(code) => {
-            println!("Failed (exit {})", code);
+            println!("Failed (exit {code})");
             std::process::exit(code);
         }
         None => {
@@ -96,13 +93,13 @@ fn handle_terminal(job: &jb_core::Job) -> Result<()> {
 
 fn parse_duration(s: &str) -> Result<u64> {
     let s = s.trim();
-    let (num, unit) = if s.ends_with("s") {
+    let (num, unit) = if s.ends_with('s') {
         (&s[..s.len() - 1], 1u64)
-    } else if s.ends_with("m") {
+    } else if s.ends_with('m') {
         (&s[..s.len() - 1], 60u64)
-    } else if s.ends_with("h") {
+    } else if s.ends_with('h') {
         (&s[..s.len() - 1], 3600u64)
-    } else if s.ends_with("d") {
+    } else if s.ends_with('d') {
         (&s[..s.len() - 1], 86400u64)
     } else {
         anyhow::bail!("Invalid duration format. Use: 30s, 5m, 1h, 7d");

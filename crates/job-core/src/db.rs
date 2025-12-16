@@ -19,7 +19,7 @@ impl Database {
 
     fn init_schema(&self) -> Result<()> {
         self.conn.execute_batch(
-            r#"
+            r"
             CREATE TABLE IF NOT EXISTS jobs (
                 id TEXT PRIMARY KEY,
                 name TEXT,
@@ -40,19 +40,19 @@ impl Database {
             CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
             CREATE INDEX IF NOT EXISTS idx_jobs_project ON jobs(project);
             CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at);
-            "#,
+            ",
         )?;
         Ok(())
     }
 
     pub fn insert(&self, job: &Job) -> Result<()> {
         self.conn.execute(
-            r#"
+            r"
             INSERT INTO jobs (
                 id, name, command, status, project, cwd, pid, exit_code,
                 created_at, started_at, finished_at, timeout_secs, context, idempotency_key
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
-            "#,
+            ",
             params![
                 job.id,
                 job.name,
@@ -66,7 +66,7 @@ impl Database {
                 job.started_at.map(|t| t.to_rfc3339()),
                 job.finished_at.map(|t| t.to_rfc3339()),
                 job.timeout_secs,
-                job.context.as_ref().map(|c| c.to_string()),
+                job.context.as_ref().map(std::string::ToString::to_string),
                 job.idempotency_key,
             ],
         )?;
@@ -123,7 +123,7 @@ impl Database {
 
         let mut stmt = self.conn.prepare(&sql)?;
         let params_refs: Vec<&dyn rusqlite::ToSql> =
-            params_vec.iter().map(|p| p.as_ref()).collect();
+            params_vec.iter().map(std::convert::AsRef::as_ref).collect();
         let jobs = stmt
             .query_map(params_refs.as_slice(), |row| self.row_to_job(row))?
             .collect::<Result<Vec<_>, _>>()?;
@@ -173,7 +173,7 @@ impl Database {
         }
 
         let params_refs: Vec<&dyn rusqlite::ToSql> =
-            params_vec.iter().map(|p| p.as_ref()).collect();
+            params_vec.iter().map(std::convert::AsRef::as_ref).collect();
         let count = self.conn.execute(&sql, params_refs.as_slice())?;
         Ok(count)
     }
@@ -191,9 +191,7 @@ impl Database {
             cwd: PathBuf::from(row.get::<_, String>("cwd")?),
             pid: row.get("pid")?,
             exit_code: row.get("exit_code")?,
-            created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>("created_at")?)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now()),
+            created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>("created_at")?).map_or_else(|_| chrono::Utc::now(), |t| t.with_timezone(&chrono::Utc)),
             started_at: row
                 .get::<_, Option<String>>("started_at")?
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())

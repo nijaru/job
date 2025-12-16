@@ -7,6 +7,7 @@ pub async fn execute(older_than: String, status: Option<String>, all: bool) -> R
     let db = Database::open(&paths)?;
 
     let duration_secs = parse_duration(&older_than)?;
+    #[allow(clippy::cast_possible_wrap)] // durations won't exceed i64::MAX
     let before = if all {
         Utc::now()
     } else {
@@ -33,20 +34,20 @@ pub async fn execute(older_than: String, status: Option<String>, all: bool) -> R
         }
     }
 
-    println!("Removed {} jobs", count);
+    println!("Removed {count} jobs");
 
     Ok(())
 }
 
 fn parse_duration(s: &str) -> Result<u64> {
     let s = s.trim();
-    let (num, unit) = if s.ends_with("s") {
+    let (num, unit) = if s.ends_with('s') {
         (&s[..s.len() - 1], 1u64)
-    } else if s.ends_with("m") {
+    } else if s.ends_with('m') {
         (&s[..s.len() - 1], 60u64)
-    } else if s.ends_with("h") {
+    } else if s.ends_with('h') {
         (&s[..s.len() - 1], 3600u64)
-    } else if s.ends_with("d") {
+    } else if s.ends_with('d') {
         (&s[..s.len() - 1], 86400u64)
     } else {
         anyhow::bail!("Invalid duration format. Use: 30s, 5m, 1h, 7d");

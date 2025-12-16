@@ -62,7 +62,7 @@ async fn read_message(stream: &mut UnixStream) -> Result<Option<Request>> {
 
     let len = u32::from_be_bytes(len_buf) as usize;
     if len > 10 * 1024 * 1024 {
-        anyhow::bail!("message too large: {} bytes", len);
+        anyhow::bail!("message too large: {len} bytes");
     }
 
     let mut buf = vec![0u8; len];
@@ -74,6 +74,7 @@ async fn read_message(stream: &mut UnixStream) -> Result<Option<Request>> {
 
 async fn write_message(stream: &mut UnixStream, response: &Response) -> Result<()> {
     let data = serde_json::to_vec(response)?;
+    #[allow(clippy::cast_possible_truncation)] // messages are always < 4GB
     let len = (data.len() as u32).to_be_bytes();
 
     stream.write_all(&len).await?;
@@ -126,13 +127,13 @@ async fn handle_request(request: Request, state: &Arc<DaemonState>) -> Response 
                 }
                 spawner::stop_job(state, &job.id, force).await
             }
-            Ok(None) => Response::Error(format!("Job not found: {}", id)),
+            Ok(None) => Response::Error(format!("Job not found: {id}")),
             Err(e) => Response::Error(e.to_string()),
         },
 
         Request::Status { id } => match state.get_job(&id) {
             Ok(Some(job)) => Response::Job(job),
-            Ok(None) => Response::Error(format!("Job not found: {}", id)),
+            Ok(None) => Response::Error(format!("Job not found: {id}")),
             Err(e) => Response::Error(e.to_string()),
         },
 

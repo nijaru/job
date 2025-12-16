@@ -44,6 +44,7 @@ impl DaemonClient {
     pub async fn send(&mut self, request: Request) -> Result<Response> {
         // Write request
         let data = serde_json::to_vec(&request)?;
+        #[allow(clippy::cast_possible_truncation)] // messages are always < 4GB
         let len = (data.len() as u32).to_be_bytes();
         self.stream.write_all(&len).await?;
         self.stream.write_all(&data).await?;
@@ -55,7 +56,7 @@ impl DaemonClient {
         let len = u32::from_be_bytes(len_buf) as usize;
 
         if len > 10 * 1024 * 1024 {
-            anyhow::bail!("Response too large: {} bytes", len);
+            anyhow::bail!("Response too large: {len} bytes");
         }
 
         let mut buf = vec![0u8; len];

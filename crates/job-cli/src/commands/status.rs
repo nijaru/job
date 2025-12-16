@@ -15,20 +15,17 @@ pub async fn execute(id: Option<String>, json: bool) -> Result<()> {
 fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result<()> {
     let job = db.get(id)?;
 
-    let job = match job {
-        Some(j) => j,
-        None => {
-            let by_name = db.get_by_name(id)?;
-            match by_name.len() {
-                0 => anyhow::bail!("No job found with ID or name '{}'", id),
-                1 => by_name.into_iter().next().unwrap(),
-                _ => {
-                    eprintln!("Multiple jobs named '{}'. Use ID instead:", id);
-                    for j in by_name {
-                        eprintln!("  {} ({})", j.short_id(), j.status);
-                    }
-                    anyhow::bail!("Ambiguous job name");
+    let job = if let Some(j) = job { j } else {
+        let by_name = db.get_by_name(id)?;
+        match by_name.len() {
+            0 => anyhow::bail!("No job found with ID or name '{id}'"),
+            1 => by_name.into_iter().next().unwrap(),
+            _ => {
+                eprintln!("Multiple jobs named '{id}'. Use ID instead:");
+                for j in by_name {
+                    eprintln!("  {} ({})", j.short_id(), j.status);
                 }
+                anyhow::bail!("Ambiguous job name");
             }
         }
     };
@@ -40,7 +37,7 @@ fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result
 
     println!("ID:       {}", job.id);
     if let Some(name) = &job.name {
-        println!("Name:     {}", name);
+        println!("Name:     {name}");
     }
     println!("Status:   {}", job.status);
     println!("Command:  {}", job.command);
@@ -48,19 +45,19 @@ fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result
     println!("CWD:      {}", job.cwd.display());
     println!("Created:  {}", job.created_at);
     if let Some(started) = job.started_at {
-        println!("Started:  {}", started);
+        println!("Started:  {started}");
     }
     if let Some(finished) = job.finished_at {
-        println!("Finished: {}", finished);
+        println!("Finished: {finished}");
     }
     if let Some(pid) = job.pid {
-        println!("PID:      {}", pid);
+        println!("PID:      {pid}");
     }
     if let Some(code) = job.exit_code {
-        println!("Exit:     {}", code);
+        println!("Exit:     {code}");
     }
     if let Some(ctx) = &job.context {
-        println!("Context:  {}", ctx);
+        println!("Context:  {ctx}");
     }
 
     let log_path = paths.log_file(&job.id);
@@ -68,7 +65,7 @@ fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result
         let lines = std::fs::read_to_string(&log_path)?
             .lines()
             .count();
-        println!("Output:   {} lines", lines);
+        println!("Output:   {lines} lines");
     }
 
     Ok(())

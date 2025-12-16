@@ -49,9 +49,7 @@ pub async fn execute(
             job.command.clone()
         };
         let started = job
-            .started_at
-            .map(format_relative_time)
-            .unwrap_or_else(|| "-".to_string());
+            .started_at.map_or_else(|| "-".to_string(), format_relative_time);
 
         println!(
             "{:<10} {:<12} {:<12} {:<30} {}",

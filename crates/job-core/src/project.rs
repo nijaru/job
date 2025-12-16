@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+#[must_use] 
 pub fn detect_project(cwd: &PathBuf) -> PathBuf {
     if let Ok(output) = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
