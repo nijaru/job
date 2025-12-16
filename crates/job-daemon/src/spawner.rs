@@ -31,7 +31,11 @@ pub async fn spawn_job(
     }
 
     // Create job record
-    let mut job = Job::new(command.clone(), PathBuf::from(&cwd), PathBuf::from(&project));
+    let mut job = Job::new(
+        command.clone(),
+        PathBuf::from(&cwd),
+        PathBuf::from(&project),
+    );
 
     if let Some(n) = name {
         job = job.with_name(n);
@@ -155,14 +159,15 @@ async fn monitor_job(state: &Arc<DaemonState>, job_id: &str, timeout_secs: Optio
 
         // Check timeout
         if let Some(t) = timeout
-            && start.elapsed() >= t {
-                // Kill the process on timeout
-                let mut running = state.running_jobs.lock().unwrap();
-                if let Some(job) = running.get_mut(job_id) {
-                    let _ = job.child.start_kill();
-                }
-                break None;
+            && start.elapsed() >= t
+        {
+            // Kill the process on timeout
+            let mut running = state.running_jobs.lock().unwrap();
+            if let Some(job) = running.get_mut(job_id) {
+                let _ = job.child.start_kill();
             }
+            break None;
+        }
 
         tokio::time::sleep(Duration::from_millis(100)).await;
     };
@@ -264,9 +269,10 @@ pub async fn wait_for_job(
 
         // Check timeout
         if let Some(t) = timeout
-            && start.elapsed() >= t {
-                return Response::Error("Wait timed out".to_string());
-            }
+            && start.elapsed() >= t
+        {
+            return Response::Error("Wait timed out".to_string());
+        }
 
         // Poll interval
         tokio::time::sleep(Duration::from_millis(100)).await;

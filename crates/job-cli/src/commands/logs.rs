@@ -7,7 +7,9 @@ pub async fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()
     let db = Database::open(&paths)?;
 
     let job = db.get(&id)?;
-    let job = if let Some(j) = job { j } else {
+    let job = if let Some(j) = job {
+        j
+    } else {
         let by_name = db.get_by_name(&id)?;
         match by_name.len() {
             0 => anyhow::bail!("No job found with ID or name '{id}'"),

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jb_core::{detect_project, Database, Paths, Status};
+use jb_core::{Database, Paths, Status, detect_project};
 use std::env;
 
 pub async fn execute(
@@ -11,9 +11,7 @@ pub async fn execute(
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 
-    let status = status_filter
-        .map(|s| s.parse::<Status>())
-        .transpose()?;
+    let status = status_filter.map(|s| s.parse::<Status>()).transpose()?;
 
     let project = if all {
         None
@@ -49,7 +47,8 @@ pub async fn execute(
             job.command.clone()
         };
         let started = job
-            .started_at.map_or_else(|| "-".to_string(), format_relative_time);
+            .started_at
+            .map_or_else(|| "-".to_string(), format_relative_time);
 
         println!(
             "{:<10} {:<12} {:<12} {:<30} {}",

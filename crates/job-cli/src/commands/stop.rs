@@ -9,7 +9,9 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
 
     // Resolve job ID/name
     let job = db.get(&id)?;
-    let job = if let Some(j) = job { j } else {
+    let job = if let Some(j) = job {
+        j
+    } else {
         let by_name = db.get_by_name(&id)?;
         match by_name.len() {
             0 => anyhow::bail!("No job found with ID or name '{id}'"),
@@ -80,7 +82,7 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
 
 #[cfg(unix)]
 fn kill_process(pid: u32, force: bool) -> Result<()> {
-    use nix::sys::signal::{killpg, Signal};
+    use nix::sys::signal::{Signal, killpg};
     use nix::unistd::Pid;
 
     let signal = if force {

@@ -28,9 +28,10 @@ pub async fn execute(older_than: String, status: Option<String>, all: bool) -> R
             let entry = entry?;
             let path = entry.path();
             if let Some(stem) = path.file_stem().and_then(|s| s.to_str())
-                && !job_ids.contains(stem) {
-                    let _ = std::fs::remove_file(&path);
-                }
+                && !job_ids.contains(stem)
+            {
+                let _ = std::fs::remove_file(&path);
+            }
         }
     }
 

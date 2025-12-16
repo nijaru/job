@@ -15,7 +15,7 @@ pub enum Status {
 }
 
 impl Status {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Status::Pending => "pending",
@@ -27,7 +27,7 @@ impl Status {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(
             self,
@@ -77,7 +77,7 @@ pub struct Job {
 }
 
 impl Job {
-    #[must_use] 
+    #[must_use]
     pub fn new(command: String, cwd: PathBuf, project: PathBuf) -> Self {
         Self {
             id: Ulid::new().to_string(),
@@ -102,13 +102,13 @@ impl Job {
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_timeout(mut self, secs: u64) -> Self {
         self.timeout_secs = Some(secs);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_context(mut self, context: serde_json::Value) -> Self {
         self.context = Some(context);
         self
@@ -119,7 +119,7 @@ impl Job {
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn short_id(&self) -> &str {
         &self.id[..8]
     }

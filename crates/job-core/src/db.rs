@@ -1,7 +1,7 @@
-use crate::job::{Job, Status};
 use crate::Paths;
+use crate::job::{Job, Status};
 use anyhow::Result;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use std::path::PathBuf;
 
 pub struct Database {
@@ -164,7 +164,9 @@ impl Database {
         before: chrono::DateTime<chrono::Utc>,
         status: Option<Status>,
     ) -> Result<usize> {
-        let mut sql = String::from("DELETE FROM jobs WHERE created_at < ?1 AND status IN ('completed', 'failed', 'stopped', 'interrupted')");
+        let mut sql = String::from(
+            "DELETE FROM jobs WHERE created_at < ?1 AND status IN ('completed', 'failed', 'stopped', 'interrupted')",
+        );
         let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(before.to_rfc3339())];
 
         if let Some(s) = status {
@@ -191,7 +193,8 @@ impl Database {
             cwd: PathBuf::from(row.get::<_, String>("cwd")?),
             pid: row.get("pid")?,
             exit_code: row.get("exit_code")?,
-            created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>("created_at")?).map_or_else(|_| chrono::Utc::now(), |t| t.with_timezone(&chrono::Utc)),
+            created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>("created_at")?)
+                .map_or_else(|_| chrono::Utc::now(), |t| t.with_timezone(&chrono::Utc)),
             started_at: row
                 .get::<_, Option<String>>("started_at")?
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())

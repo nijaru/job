@@ -1,6 +1,6 @@
 use anyhow::Result;
-use jb_core::ipc::{Request, Response};
 use jb_core::Paths;
+use jb_core::ipc::{Request, Response};
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Duration;
@@ -65,7 +65,6 @@ impl DaemonClient {
         let response: Response = serde_json::from_slice(&buf)?;
         Ok(response)
     }
-
 }
 
 async fn start_daemon() -> Result<()> {

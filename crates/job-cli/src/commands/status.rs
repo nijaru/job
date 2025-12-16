@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jb_core::{detect_project, Database, Paths, Status};
+use jb_core::{Database, Paths, Status, detect_project};
 use std::env;
 
 pub async fn execute(id: Option<String>, json: bool) -> Result<()> {
@@ -15,7 +15,9 @@ pub async fn execute(id: Option<String>, json: bool) -> Result<()> {
 fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result<()> {
     let job = db.get(id)?;
 
-    let job = if let Some(j) = job { j } else {
+    let job = if let Some(j) = job {
+        j
+    } else {
         let by_name = db.get_by_name(id)?;
         match by_name.len() {
             0 => anyhow::bail!("No job found with ID or name '{id}'"),
@@ -62,9 +64,7 @@ fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result
 
     let log_path = paths.log_file(&job.id);
     if log_path.exists() {
-        let lines = std::fs::read_to_string(&log_path)?
-            .lines()
-            .count();
+        let lines = std::fs::read_to_string(&log_path)?.lines().count();
         println!("Output:   {lines} lines");
     }
 
@@ -73,9 +73,18 @@ fn show_job_status(db: &Database, paths: &Paths, id: &str, json: bool) -> Result
 
 fn show_system_status(db: &Database, paths: &Paths, json: bool) -> Result<()> {
     let all_jobs = db.list(None, None)?;
-    let running = all_jobs.iter().filter(|j| j.status == Status::Running).count();
-    let completed = all_jobs.iter().filter(|j| j.status == Status::Completed).count();
-    let failed = all_jobs.iter().filter(|j| j.status == Status::Failed).count();
+    let running = all_jobs
+        .iter()
+        .filter(|j| j.status == Status::Running)
+        .count();
+    let completed = all_jobs
+        .iter()
+        .filter(|j| j.status == Status::Completed)
+        .count();
+    let failed = all_jobs
+        .iter()
+        .filter(|j| j.status == Status::Failed)
+        .count();
 
     let cwd = env::current_dir()?;
     let project = detect_project(&cwd);
@@ -101,9 +110,17 @@ fn show_system_status(db: &Database, paths: &Paths, json: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("Daemon:   {}", if daemon_running { "running" } else { "stopped" });
-    println!("Jobs:     {} running, {} completed, {} failed ({} total)",
-        running, completed, failed, all_jobs.len());
+    println!(
+        "Daemon:   {}",
+        if daemon_running { "running" } else { "stopped" }
+    );
+    println!(
+        "Jobs:     {} running, {} completed, {} failed ({} total)",
+        running,
+        completed,
+        failed,
+        all_jobs.len()
+    );
     println!("Project:  {} ({} jobs)", project.display(), project_jobs);
 
     Ok(())

@@ -9,7 +9,9 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
 
     // Resolve job ID/name
     let job = db.get(&id)?;
-    let job = if let Some(j) = job { j } else {
+    let job = if let Some(j) = job {
+        j
+    } else {
         let by_name = db.get_by_name(&id)?;
         match by_name.len() {
             0 => anyhow::bail!("No job found with ID or name '{id}'"),
@@ -65,10 +67,11 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
         }
 
         if let Some(timeout_secs) = timeout_secs
-            && start.elapsed() > Duration::from_secs(timeout_secs) {
-                eprintln!("Timeout - job still running");
-                std::process::exit(124);
-            }
+            && start.elapsed() > Duration::from_secs(timeout_secs)
+        {
+            eprintln!("Timeout - job still running");
+            std::process::exit(124);
+        }
 
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
