@@ -2,7 +2,7 @@ use crate::SkillsAction;
 use anyhow::Result;
 use std::path::PathBuf;
 
-const SKILL_CONTENT: &str = include_str!("../../../../skills/skill.md");
+const SKILL_CONTENT: &str = include_str!("../../skills/skill.md");
 
 pub async fn execute(action: Option<SkillsAction>) -> Result<()> {
     let skills_dir = get_skills_dir()?;
