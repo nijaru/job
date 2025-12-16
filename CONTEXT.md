@@ -4,13 +4,13 @@ Background job manager for AI agents. Allows agents to spawn tasks that survive 
 
 ## Quick Orientation
 
-| What                  | Where             |
-| --------------------- | ----------------- |
-| Architecture & design | `ai/DESIGN.md`    |
-| Current status        | `ai/STATUS.md`    |
-| Design decisions      | `ai/DECISIONS.md` |
-| Tasks                 | `bd list`         |
-| Skills for Claude     | `skills/skill.md` |
+| What                  | Where                            |
+| --------------------- | -------------------------------- |
+| Architecture & design | `ai/DESIGN.md`                   |
+| Current status        | `ai/STATUS.md`                   |
+| Design decisions      | `ai/DECISIONS.md`                |
+| Tasks                 | `bd list`                        |
+| Skills for Claude     | `crates/job-cli/skills/SKILL.md` |
 
 ## Project Structure
 
@@ -18,39 +18,20 @@ Background job manager for AI agents. Allows agents to spawn tasks that survive 
 jb/
 ├── crates/
 │   ├── job-cli/      # CLI binary (jb)
-│   ├── job-daemon/   # Daemon binary (jbd) - NOT YET IMPLEMENTED
+│   ├── job-daemon/   # Daemon binary (jbd)
 │   └── job-core/     # Shared library (types, DB, IPC protocol)
-├── skills/           # Claude skills file
 └── ai/               # Design docs
 ```
 
-## Current State
-
-**CLI works, daemon doesn't.**
-
-`jb run "cmd"` creates a job in `~/.jb/job.db` but the job stays `pending` because the daemon (`jbd`) isn't implemented to execute it.
-
-## What Needs to Be Built
-
-The daemon (`crates/job-daemon/src/main.rs`) needs to:
-
-1. Listen on Unix socket (`~/.jb/daemon.sock`)
-2. Receive job requests from CLI
-3. Spawn processes with `setsid()` (detached)
-4. Monitor processes, capture output to `~/.jb/logs/<id>.log`
-5. Update DB with exit codes
-
-See `bd list` for tracked tasks.
-
 ## Key Files
 
-| File                            | Purpose                            |
-| ------------------------------- | ---------------------------------- |
-| `crates/job-core/src/job.rs`    | Job struct and Status enum         |
-| `crates/job-core/src/db.rs`     | SQLite operations                  |
-| `crates/job-core/src/ipc.rs`    | Request/Response protocol          |
-| `crates/job-cli/src/main.rs`    | CLI entry point                    |
-| `crates/job-daemon/src/main.rs` | Daemon stub (needs implementation) |
+| File                            | Purpose                    |
+| ------------------------------- | -------------------------- |
+| `crates/job-core/src/job.rs`    | Job struct and Status enum |
+| `crates/job-core/src/db.rs`     | SQLite operations          |
+| `crates/job-core/src/ipc.rs`    | Request/Response protocol  |
+| `crates/job-cli/src/main.rs`    | CLI entry point            |
+| `crates/job-daemon/src/main.rs` | Daemon entry point         |
 
 ## Commands
 
@@ -59,3 +40,27 @@ cargo build --release       # Build
 ./target/release/jb --help  # CLI help
 bd list                     # View tasks
 ```
+
+## Releasing
+
+**Always use the release workflow - never publish manually.**
+
+```bash
+# 1. Bump version in root Cargo.toml (workspace.package.version and workspace.dependencies.jb-core)
+# 2. Commit and push
+# 3. Wait for CI to pass
+gh run list --limit 1
+
+# 4. Trigger release workflow
+gh workflow run release.yml
+
+# 5. Watch release
+gh run watch
+```
+
+The release workflow:
+
+- Verifies version isn't already published
+- Runs fmt/clippy checks
+- Builds for linux (x86_64, aarch64) and macos (x86_64, aarch64)
+- Publishes via trusted publishing (OIDC)
