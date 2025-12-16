@@ -87,4 +87,3 @@ async fn wait_for_job(client: &mut DaemonClient, job_id: &str, json: bool) -> Re
         }
     }
 }
-

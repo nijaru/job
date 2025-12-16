@@ -93,4 +93,3 @@ fn handle_terminal(job: &jb_core::Job) -> Result<()> {
         }
     }
 }
-

@@ -39,4 +39,3 @@ pub async fn execute(older_than: String, status: Option<String>, all: bool) -> R
 
     Ok(())
 }
-
