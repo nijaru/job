@@ -1,5 +1,5 @@
-use crate::Paths;
-use crate::job::{Job, Status};
+use crate::core::Paths;
+use crate::core::job::{Job, Status};
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension, params};
 use std::path::PathBuf;

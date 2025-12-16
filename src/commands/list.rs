@@ -1,5 +1,5 @@
+use crate::core::{Database, Paths, Status, detect_project};
 use anyhow::Result;
-use jb_core::{Database, Paths, Status, detect_project};
 use std::env;
 
 pub async fn execute(

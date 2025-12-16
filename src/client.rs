@@ -1,6 +1,6 @@
+use crate::core::Paths;
+use crate::core::ipc::{Request, Response};
 use anyhow::Result;
-use jb_core::Paths;
-use jb_core::ipc::{Request, Response};
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Duration;
@@ -68,21 +68,12 @@ impl DaemonClient {
 }
 
 async fn start_daemon() -> Result<()> {
-    // Find jbd binary - same directory as jb
-    let jbd_path = std::env::current_exe()?
-        .parent()
-        .ok_or_else(|| anyhow::anyhow!("Cannot find executable directory"))?
-        .join("jbd");
-
-    if !jbd_path.exists() {
-        anyhow::bail!(
-            "Daemon binary not found at {}. Build with: cargo build --release",
-            jbd_path.display()
-        );
-    }
+    // Use same binary with "daemon" subcommand
+    let exe = std::env::current_exe()?;
 
     // Spawn daemon detached
-    Command::new(&jbd_path)
+    Command::new(&exe)
+        .arg("daemon")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())

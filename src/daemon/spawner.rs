@@ -1,6 +1,6 @@
-use crate::state::{DaemonState, RunningJob};
-use jb_core::ipc::Response;
-use jb_core::{Job, Status};
+use crate::core::ipc::Response;
+use crate::core::{Job, Status};
+use crate::daemon::state::{DaemonState, RunningJob};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -10,8 +10,8 @@ use tokio::process::Command;
 use tokio::sync::oneshot;
 use tracing::{error, info};
 
-#[allow(clippy::too_many_arguments)] // TODO: refactor to use struct
-#[allow(clippy::unused_async)] // async for consistency with other handlers
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::unused_async)]
 pub async fn spawn_job(
     state: &Arc<DaemonState>,
     command: String,

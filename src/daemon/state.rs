@@ -1,4 +1,4 @@
-use jb_core::{Database, Paths, Status};
+use crate::core::{Database, Job, Paths, Status};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
@@ -46,7 +46,7 @@ impl DaemonState {
             .unwrap_or(0)
     }
 
-    pub fn get_job(&self, id: &str) -> anyhow::Result<Option<jb_core::Job>> {
+    pub fn get_job(&self, id: &str) -> anyhow::Result<Option<Job>> {
         self.db.lock().unwrap().get(id)
     }
 
@@ -54,7 +54,7 @@ impl DaemonState {
         &self,
         status: Option<Status>,
         project: Option<&std::path::PathBuf>,
-    ) -> anyhow::Result<Vec<jb_core::Job>> {
+    ) -> anyhow::Result<Vec<Job>> {
         self.db.lock().unwrap().list(status, project)
     }
 }

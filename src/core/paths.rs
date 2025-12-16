@@ -15,11 +15,6 @@ impl Paths {
     }
 
     #[must_use]
-    pub fn root(&self) -> &PathBuf {
-        &self.root
-    }
-
-    #[must_use]
     pub fn database(&self) -> PathBuf {
         self.root.join("job.db")
     }

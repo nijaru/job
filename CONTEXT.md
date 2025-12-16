@@ -4,34 +4,37 @@ Background job manager for AI agents. Allows agents to spawn tasks that survive 
 
 ## Quick Orientation
 
-| What                  | Where                            |
-| --------------------- | -------------------------------- |
-| Architecture & design | `ai/DESIGN.md`                   |
-| Current status        | `ai/STATUS.md`                   |
-| Design decisions      | `ai/DECISIONS.md`                |
-| Tasks                 | `bd list`                        |
-| Skills for Claude     | `crates/job-cli/skills/SKILL.md` |
+| What                  | Where             |
+| --------------------- | ----------------- |
+| Architecture & design | `ai/DESIGN.md`    |
+| Current status        | `ai/STATUS.md`    |
+| Design decisions      | `ai/DECISIONS.md` |
+| Tasks                 | `bd list`         |
+| Skills for Claude     | `skills/SKILL.md` |
 
 ## Project Structure
 
 ```
 jb/
-├── crates/
-│   ├── job-cli/      # CLI binary (jb)
-│   ├── job-daemon/   # Daemon binary (jbd)
-│   └── job-core/     # Shared library (types, DB, IPC protocol)
+├── src/
+│   ├── main.rs       # CLI entry point
+│   ├── client.rs     # Daemon client
+│   ├── core/         # Types, DB, IPC protocol
+│   ├── commands/     # CLI subcommands
+│   └── daemon/       # Daemon implementation
+├── skills/           # Claude skills
 └── ai/               # Design docs
 ```
 
 ## Key Files
 
-| File                            | Purpose                    |
-| ------------------------------- | -------------------------- |
-| `crates/job-core/src/job.rs`    | Job struct and Status enum |
-| `crates/job-core/src/db.rs`     | SQLite operations          |
-| `crates/job-core/src/ipc.rs`    | Request/Response protocol  |
-| `crates/job-cli/src/main.rs`    | CLI entry point            |
-| `crates/job-daemon/src/main.rs` | Daemon entry point         |
+| File                | Purpose                    |
+| ------------------- | -------------------------- |
+| `src/core/job.rs`   | Job struct and Status enum |
+| `src/core/db.rs`    | SQLite operations          |
+| `src/core/ipc.rs`   | Request/Response protocol  |
+| `src/main.rs`       | CLI entry point            |
+| `src/daemon/mod.rs` | Daemon entry point         |
 
 ## Commands
 
@@ -46,7 +49,7 @@ bd list                     # View tasks
 **Always use the release workflow - never publish manually.**
 
 ```bash
-# 1. Bump version in root Cargo.toml (workspace.package.version and workspace.dependencies.jb-core)
+# 1. Bump version in Cargo.toml
 # 2. Commit and push
 # 3. Wait for CI to pass
 gh run list --limit 1

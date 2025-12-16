@@ -1,21 +1,13 @@
-mod server;
-mod spawner;
-mod state;
+pub mod server;
+pub mod spawner;
+pub mod state;
 
+use crate::core::Paths;
 use anyhow::Result;
-use jb_core::Paths;
 use std::sync::Arc;
 use tracing::info;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into()),
-        )
-        .init();
-
+pub async fn run() -> Result<()> {
     let paths = Paths::new();
     paths.ensure_dirs()?;
 
@@ -34,11 +26,11 @@ async fn main() -> Result<()> {
     }
 
     // Run the server
-    let result = server::run(paths, state.clone()).await;
+    let result = server::run(paths.clone(), state.clone()).await;
 
     // Cleanup
-    let _ = std::fs::remove_file(Paths::new().pid_file());
-    let _ = std::fs::remove_file(Paths::new().socket());
+    let _ = std::fs::remove_file(paths.pid_file());
+    let _ = std::fs::remove_file(paths.socket());
 
     result
 }

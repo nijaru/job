@@ -1,4 +1,4 @@
-use crate::Job;
+use crate::core::Job;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

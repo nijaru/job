@@ -1,6 +1,6 @@
+use crate::core::{Database, Paths, Status, parse_duration};
 use anyhow::Result;
 use chrono::Utc;
-use jb_core::{Database, Paths, Status, parse_duration};
 
 pub async fn execute(older_than: String, status: Option<String>, all: bool) -> Result<()> {
     let paths = Paths::new();

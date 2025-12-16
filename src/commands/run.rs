@@ -1,7 +1,7 @@
 use crate::client::DaemonClient;
+use crate::core::ipc::{Request, Response};
+use crate::core::{Paths, detect_project, parse_duration};
 use anyhow::Result;
-use jb_core::ipc::{Request, Response};
-use jb_core::{Paths, detect_project, parse_duration};
 use std::env;
 
 pub async fn execute(

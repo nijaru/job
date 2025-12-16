@@ -1,5 +1,5 @@
+use crate::core::{Database, Paths};
 use anyhow::Result;
-use jb_core::{Database, Paths};
 use std::io::{BufRead, BufReader};
 
 pub async fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()> {
@@ -32,7 +32,6 @@ pub async fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()
     }
 
     if follow {
-        // TODO: Implement follow mode with inotify/kqueue
         eprintln!("--follow not yet implemented");
     }
 

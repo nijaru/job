@@ -1,7 +1,7 @@
 use crate::client::DaemonClient;
+use crate::core::ipc::{Request, Response};
+use crate::core::{Database, Paths};
 use anyhow::Result;
-use jb_core::ipc::{Request, Response};
-use jb_core::{Database, Paths};
 
 pub async fn execute(id: String, json: bool) -> Result<()> {
     let paths = Paths::new();

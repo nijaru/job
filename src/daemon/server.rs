@@ -1,8 +1,8 @@
-use crate::spawner;
-use crate::state::DaemonState;
+use crate::core::ipc::{Request, Response};
+use crate::core::{Paths, Status};
+use crate::daemon::spawner;
+use crate::daemon::state::DaemonState;
 use anyhow::Result;
-use jb_core::ipc::{Request, Response};
-use jb_core::{Paths, Status};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};

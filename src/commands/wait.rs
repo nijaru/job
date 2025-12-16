@@ -1,7 +1,7 @@
 use crate::client::DaemonClient;
+use crate::core::ipc::{Request, Response};
+use crate::core::{Database, Job, Paths, parse_duration};
 use anyhow::Result;
-use jb_core::ipc::{Request, Response};
-use jb_core::{Database, Paths, parse_duration};
 
 pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
     let paths = Paths::new();
@@ -77,7 +77,7 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
     }
 }
 
-fn handle_terminal(job: &jb_core::Job) -> Result<()> {
+fn handle_terminal(job: &Job) -> Result<()> {
     match job.exit_code {
         Some(0) => {
             println!("Completed (exit 0)");

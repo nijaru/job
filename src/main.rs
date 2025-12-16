@@ -1,5 +1,7 @@
 mod client;
 mod commands;
+mod core;
+mod daemon;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -127,10 +129,14 @@ enum Commands {
         #[command(subcommand)]
         action: Option<SkillsAction>,
     },
+
+    /// Run the daemon (internal use)
+    #[command(hide = true)]
+    Daemon,
 }
 
 #[derive(Subcommand)]
-enum SkillsAction {
+pub enum SkillsAction {
     /// Install skills to ~/.claude/skills/jb/ (or custom path)
     Install {
         /// Custom installation directory
@@ -175,5 +181,6 @@ async fn main() -> Result<()> {
             all,
         } => commands::clean::execute(older_than, status, all).await,
         Commands::Skills { action } => commands::skills::execute(action).await,
+        Commands::Daemon => commands::daemon::execute().await,
     }
 }
