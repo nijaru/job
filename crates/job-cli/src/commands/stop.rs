@@ -38,18 +38,7 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
     if job.status == Status::Pending {
         db.update_status(&job.id, Status::Stopped)?;
     } else if let Some(pid) = job.pid {
-        let signal = if force {
-            nix::sys::signal::Signal::SIGKILL
-        } else {
-            nix::sys::signal::Signal::SIGTERM
-        };
-
-        // Try to kill the process group
-        let _ = nix::sys::signal::killpg(
-            nix::unistd::Pid::from_raw(pid as i32),
-            signal,
-        );
-
+        kill_process(pid, force)?;
         db.update_finished(&job.id, Status::Stopped, None)?;
     }
 
@@ -61,4 +50,25 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(unix)]
+fn kill_process(pid: u32, force: bool) -> Result<()> {
+    use nix::sys::signal::{killpg, Signal};
+    use nix::unistd::Pid;
+
+    let signal = if force {
+        Signal::SIGKILL
+    } else {
+        Signal::SIGTERM
+    };
+
+    let _ = killpg(Pid::from_raw(pid as i32), signal);
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn kill_process(_pid: u32, _force: bool) -> Result<()> {
+    // TODO: Implement Windows process termination
+    anyhow::bail!("Process termination not yet implemented on this platform")
 }

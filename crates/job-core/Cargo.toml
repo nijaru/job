@@ -13,3 +13,4 @@ rusqlite.workspace = true
 ulid.workspace = true
 chrono.workspace = true
 tracing.workspace = true
+dirs = "6"
