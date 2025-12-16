@@ -1,7 +1,7 @@
-use crate::client::{is_daemon_running, DaemonClient};
+use crate::client::DaemonClient;
 use anyhow::Result;
 use jb_core::ipc::{Request, Response};
-use jb_core::{detect_project, Database, Job, Paths};
+use jb_core::{detect_project, Paths};
 use std::env;
 
 pub async fn execute(
@@ -25,100 +25,40 @@ pub async fn execute(
         .map(|c| serde_json::from_str(c))
         .transpose()?;
 
-    // Try to send to daemon first
-    if is_daemon_running() {
-        match DaemonClient::connect().await {
-            Ok(mut client) => {
-                let request = Request::Run {
-                    command: command.clone(),
-                    name: name.clone(),
-                    cwd: cwd.to_string_lossy().to_string(),
-                    project: project.to_string_lossy().to_string(),
-                    timeout_secs,
-                    context: context_json.clone(),
-                    idempotency_key: key.clone(),
-                };
+    // Connect to daemon (auto-starts if not running)
+    let mut client = DaemonClient::connect_or_start().await?;
 
-                match client.send(request).await {
-                    Ok(Response::Job(job)) => {
-                        if json {
-                            println!("{}", serde_json::to_string(&job)?);
-                        } else {
-                            println!("{}", job.short_id());
-                        }
+    let request = Request::Run {
+        command,
+        name,
+        cwd: cwd.to_string_lossy().to_string(),
+        project: project.to_string_lossy().to_string(),
+        timeout_secs,
+        context: context_json,
+        idempotency_key: key,
+    };
 
-                        if wait {
-                            wait_for_job(&mut client, &job.id, json).await?;
-                        }
-
-                        return Ok(());
-                    }
-                    Ok(Response::Error(e)) => {
-                        anyhow::bail!("Daemon error: {}", e);
-                    }
-                    Ok(_) => {
-                        anyhow::bail!("Unexpected response from daemon");
-                    }
-                    Err(e) => {
-                        eprintln!("Warning: daemon communication failed: {}", e);
-                        // Fall through to direct DB mode
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("Warning: could not connect to daemon: {}", e);
-                // Fall through to direct DB mode
-            }
-        }
-    }
-
-    // Fallback: direct DB mode (daemon not running)
-    let db = Database::open(&paths)?;
-
-    if let Some(ref k) = key {
-        if let Some(existing) = db.get_by_idempotency_key(k)? {
+    match client.send(request).await? {
+        Response::Job(job) => {
             if json {
-                println!("{}", serde_json::to_string(&existing)?);
+                println!("{}", serde_json::to_string(&job)?);
             } else {
-                println!("{}", existing.short_id());
-                eprintln!("Job with key '{}' already exists", k);
+                println!("{}", job.short_id());
             }
-            return Ok(());
+
+            if wait {
+                wait_for_job(&mut client, &job.id, json).await?;
+            }
+
+            Ok(())
+        }
+        Response::Error(e) => {
+            anyhow::bail!("{}", e);
+        }
+        _ => {
+            anyhow::bail!("Unexpected response from daemon");
         }
     }
-
-    let mut job = Job::new(command, cwd, project);
-
-    if let Some(n) = name {
-        job = job.with_name(n);
-    }
-
-    if let Some(t) = timeout_secs {
-        job = job.with_timeout(t);
-    }
-
-    if let Some(c) = context_json {
-        job = job.with_context(c);
-    }
-
-    if let Some(k) = key {
-        job = job.with_idempotency_key(k);
-    }
-
-    db.insert(&job)?;
-
-    if json {
-        println!("{}", serde_json::to_string(&job)?);
-    } else {
-        println!("{}", job.short_id());
-        eprintln!("Warning: daemon not running, job will stay pending");
-    }
-
-    if wait {
-        eprintln!("Cannot wait: daemon not running");
-    }
-
-    Ok(())
 }
 
 async fn wait_for_job(client: &mut DaemonClient, job_id: &str, json: bool) -> Result<()> {

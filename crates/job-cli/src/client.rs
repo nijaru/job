@@ -2,22 +2,43 @@ use anyhow::Result;
 use jb_core::ipc::{Request, Response};
 use jb_core::Paths;
 use std::path::Path;
+use std::process::Stdio;
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
+use tokio::process::Command;
 
 pub struct DaemonClient {
     stream: UnixStream,
 }
 
 impl DaemonClient {
-    pub async fn connect() -> Result<Self> {
-        let paths = Paths::new();
-        Self::connect_to(paths.socket()).await
-    }
-
-    pub async fn connect_to(socket_path: impl AsRef<Path>) -> Result<Self> {
+    async fn connect_to(socket_path: impl AsRef<Path>) -> Result<Self> {
         let stream = UnixStream::connect(socket_path).await?;
         Ok(Self { stream })
+    }
+
+    /// Connect to daemon, starting it if not running
+    pub async fn connect_or_start() -> Result<Self> {
+        let paths = Paths::new();
+
+        // Try connecting first
+        if let Ok(client) = Self::connect_to(paths.socket()).await {
+            return Ok(client);
+        }
+
+        // Daemon not running, start it
+        start_daemon().await?;
+
+        // Wait for daemon to be ready
+        for _ in 0..50 {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            if let Ok(client) = Self::connect_to(paths.socket()).await {
+                return Ok(client);
+            }
+        }
+
+        anyhow::bail!("Daemon failed to start within 5 seconds")
     }
 
     pub async fn send(&mut self, request: Request) -> Result<Response> {
@@ -44,28 +65,29 @@ impl DaemonClient {
         Ok(response)
     }
 
-    pub async fn ping(&mut self) -> Result<Response> {
-        self.send(Request::Ping).await
-    }
 }
 
-pub fn is_daemon_running() -> bool {
-    let paths = Paths::new();
-    let pid_file = paths.pid_file();
+async fn start_daemon() -> Result<()> {
+    // Find jbd binary - same directory as jb
+    let jbd_path = std::env::current_exe()?
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot find executable directory"))?
+        .join("jbd");
 
-    if !pid_file.exists() {
-        return false;
+    if !jbd_path.exists() {
+        anyhow::bail!(
+            "Daemon binary not found at {}. Build with: cargo build --release",
+            jbd_path.display()
+        );
     }
 
-    // Check if PID is still alive
-    if let Ok(pid_str) = std::fs::read_to_string(&pid_file) {
-        if let Ok(pid) = pid_str.trim().parse::<i32>() {
-            use nix::sys::signal::kill;
-            use nix::unistd::Pid;
-            // Signal 0 checks if process exists without sending a signal
-            return kill(Pid::from_raw(pid), None).is_ok();
-        }
-    }
+    // Spawn daemon detached
+    Command::new(&jbd_path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .spawn()?;
 
-    false
+    Ok(())
 }
