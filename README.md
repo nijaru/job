@@ -2,6 +2,8 @@
 
 Background job manager for AI agents.
 
+> **Alpha Software**: This is experimental. Core functionality works but edge cases (daemon crash recovery, concurrent access, very large outputs) are untested. No automated test suite yet. Use at your own risk.
+
 ## Overview
 
 `jb` is an OS-agnostic CLI for managing long-running background tasks, designed specifically for AI agents. It allows agents to spawn tasks that survive session end, run in parallel, and be monitored from any context.

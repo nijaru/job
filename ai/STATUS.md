@@ -1,49 +1,50 @@
 # Status
 
-**Phase**: Core complete, ready for use
+**Version**: 0.0.1-alpha1
+**Phase**: Core complete, ready for alpha testing
 
 ## What Works
 
-| Command          | Status   | Notes                                       |
-| ---------------- | -------- | ------------------------------------------- |
-| `jb run "cmd"`   | Working  | Auto-starts daemon, returns job ID          |
-| `jb run --wait`  | Working  | Waits for completion, exits with job's code |
-| `jb list`        | Working  | Shows jobs for current project              |
-| `jb status`      | Working  | System status or job details                |
-| `jb status <id>` | Working  | Detailed job info                           |
-| `jb clean`       | Working  | Removes old completed jobs                  |
-| `jb logs <id>`   | Partial  | Reads log file, no `--follow` yet           |
-| `jb stop <id>`   | Untested | Sends kill signal                           |
-| `jb wait <id>`   | Untested | Polls until complete                        |
+| Command         | Status | Notes                     |
+| --------------- | ------ | ------------------------- |
+| `jb run "cmd"`  | Tested | Auto-starts daemon        |
+| `jb run --wait` | Tested | Blocks, returns exit code |
+| `jb run -t 5s`  | Tested | Timeout kills job         |
+| `jb run -k key` | Tested | Idempotency works         |
+| `jb list`       | Tested |                           |
+| `jb status`     | Tested | System + job detail       |
+| `jb logs`       | Tested |                           |
+| `jb stop`       | Tested | Via daemon IPC            |
+| `jb wait`       | Tested | Via daemon IPC            |
+| `jb retry`      | Tested | Via daemon IPC            |
+| `jb clean`      | Tested |                           |
+| `--json`        | Tested | Valid JSON output         |
 
-## Architecture
+## Not Yet Tested
 
-```
-jb run "cmd"
-    │
-    ├─► daemon not running? spawn jbd
-    │
-    └─► connect to ~/.jb/daemon.sock
-            │
-            └─► daemon spawns process (setsid)
-                    │
-                    ├─► stdout/stderr → ~/.jb/logs/<id>.log
-                    └─► exit code → SQLite DB
-```
+- Daemon crash recovery
+- System reboot behavior
+- Concurrent job submission
+- Very long-running jobs (hours+)
+- Large output files (GB+)
+- Actual agent session survival
 
-## Polish Items (not tracked)
+## Known Limitations
 
-- `jb logs --follow` - tail -f style
-- `jb retry <id>` - re-run failed job
-- Orphan recovery on daemon start
-- Graceful shutdown (finish running jobs)
-- Log rotation
+- No automated tests
+- 41 clippy pedantic warnings (all docs/style)
+- `spawn_job` has too many arguments (should use struct)
 
-## Build & Test
+## Platforms
 
-```bash
-cargo build --release
-./target/release/jb run "sleep 2 && echo done" --name test
-./target/release/jb list
-./target/release/jb logs <id>
-```
+| Platform       | Build | Manual Tests |
+| -------------- | ----- | ------------ |
+| macOS (arm64)  | Pass  | Pass         |
+| Linux (Fedora) | Pass  | Pass         |
+
+## Next Steps
+
+1. Real-world testing with Claude Code
+2. Add integration tests
+3. Daemon crash recovery
+4. Consider systemd/launchd integration
