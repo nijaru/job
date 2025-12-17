@@ -1,4 +1,4 @@
-use crate::core::{detect_project, Database, Paths, Status};
+use crate::core::{Database, Paths, Status, detect_project};
 use anyhow::Result;
 use std::env;
 

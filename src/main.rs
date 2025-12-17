@@ -167,7 +167,9 @@ async fn main() -> Result<()> {
             key,
             wait,
         } => commands::run::execute(command, name, timeout, context, key, wait, cli.json).await,
-        Commands::List { status, here, all } => commands::list::execute(status, here, all, cli.json),
+        Commands::List { status, here, all } => {
+            commands::list::execute(status, here, all, cli.json)
+        }
         Commands::Status { id } => commands::status::execute(id, cli.json),
         Commands::Logs { id, tail, follow } => commands::logs::execute(&id, tail, follow),
         Commands::Stop { id, force } => commands::stop::execute(id, force, cli.json).await,
