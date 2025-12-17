@@ -1,6 +1,6 @@
 # jb
 
-Modern nohup. Background jobs with tracking.
+Background job manager. Run commands that persist after your terminal closes.
 
 ## Install
 
@@ -27,20 +27,6 @@ Status: completed
 Exit: 0
 ```
 
-## vs nohup
-
-```bash
-# nohup way
-nohup cmd > /tmp/log-$$.txt 2>&1 &
-echo $!  # remember this somehow
-# later: where was that log? what was the PID?
-
-# jb way
-jb run "cmd"   # returns: a3x9
-jb logs a3x9   # output is here
-jb status a3x9 # status is here
-```
-
 ## Commands
 
 | Command          | Purpose                     |
@@ -61,6 +47,16 @@ jb status a3x9 # status is here
 - JSON output (`--json`)
 - Survives terminal disconnect
 - Auto-starts daemon
+
+## vs nohup
+
+```bash
+nohup cmd > /tmp/log-$$.txt 2>&1 &
+echo $!
+
+jb run "cmd"
+jb logs <id>
+```
 
 ## For AI Agents
 
