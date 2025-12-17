@@ -2,11 +2,11 @@ use crate::core::{Database, Paths, Status, parse_duration};
 use anyhow::Result;
 use chrono::Utc;
 
-pub fn execute(older_than: String, status: Option<String>, all: bool) -> Result<()> {
+pub fn execute(older_than: &str, status: Option<String>, all: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 
-    let duration_secs = parse_duration(&older_than)?;
+    let duration_secs = parse_duration(older_than)?;
     #[allow(clippy::cast_possible_wrap)] // durations won't exceed i64::MAX
     let before = if all {
         Utc::now()

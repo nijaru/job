@@ -2,15 +2,15 @@ use crate::core::{Database, Paths};
 use anyhow::Result;
 use std::io::{BufRead, BufReader};
 
-pub fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()> {
+pub fn execute(id: &str, tail: Option<usize>, follow: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 
-    let job = db.get(&id)?;
+    let job = db.get(id)?;
     let job = if let Some(j) = job {
         j
     } else {
-        let by_name = db.get_by_name(&id)?;
+        let by_name = db.get_by_name(id)?;
         match by_name.len() {
             0 => anyhow::bail!("No job found with ID or name '{id}'"),
             1 => by_name.into_iter().next().unwrap(),
