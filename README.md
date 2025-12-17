@@ -1,79 +1,72 @@
 # jb
 
-Background job manager for AI agents.
+Modern nohup. Background jobs with tracking.
 
-> **Alpha Software**: This is experimental. Core functionality works but edge cases (daemon crash recovery, concurrent access, very large outputs) are untested. No automated test suite yet. Use at your own risk.
-
-## Overview
-
-`jb` is an OS-agnostic CLI for managing long-running background tasks, designed specifically for AI agents. It allows agents to spawn tasks that survive session end, run in parallel, and be monitored from any context.
-
-## Installation
+## Install
 
 ```bash
-cargo install --path crates/job-cli
+cargo install jb
 ```
 
 ## Quick Start
 
 ```bash
-# Start a background job
-jb run "make build"
+$ jb run "cargo build --release"
+a3x9
 
-# List jobs in current project
-jb list
+$ jb list
+ID    STATUS     COMMAND
+a3x9  running    cargo build --release
 
-# Check job status
-jb status abc123
+$ jb logs a3x9
+   Compiling foo v0.1.0
+   ...
 
-# View job output
-jb logs abc123 --tail
+$ jb status a3x9
+Status: completed
+Exit: 0
+```
 
-# Stop a job
-jb stop abc123
+## vs nohup
+
+```bash
+# nohup way
+nohup cmd > /tmp/log-$$.txt 2>&1 &
+echo $!  # remember this somehow
+# later: where was that log? what was the PID?
+
+# jb way
+jb run "cmd"   # returns: a3x9
+jb logs a3x9   # output is here
+jb status a3x9 # status is here
 ```
 
 ## Commands
 
-| Command             | Purpose                     |
-| ------------------- | --------------------------- |
-| `jb run <cmd>`      | Start background job        |
-| `jb list`           | List jobs (current project) |
-| `jb status [<id>]`  | Job or system status        |
-| `jb logs <id>`      | View output                 |
-| `jb stop <id>`      | Stop job                    |
-| `jb wait <id>`      | Block until done            |
-| `jb retry <id>`     | Re-run job                  |
-| `jb clean`          | Remove old jobs             |
-| `jb skills install` | Install Claude skills       |
+| Command          | Purpose                     |
+| ---------------- | --------------------------- |
+| `jb run <cmd>`   | Start background job        |
+| `jb list`        | List jobs (current project) |
+| `jb logs <id>`   | View output                 |
+| `jb status <id>` | Job details                 |
+| `jb stop <id>`   | Stop job                    |
+| `jb wait <id>`   | Block until done            |
+| `jb retry <id>`  | Re-run job                  |
+| `jb clean`       | Remove old jobs             |
 
-## Agent Integration
+## Features
 
-Install skills for Claude Code:
+- Short memorable IDs (`a3x9`)
+- Per-project job tracking (via git root)
+- JSON output (`--json`)
+- Survives terminal disconnect
+- Auto-starts daemon
+
+## For AI Agents
 
 ```bash
-jb skills install
+jb skills install  # installs to ~/.claude/skills/jb/
 ```
-
-This installs documentation to `~/.claude/skills/jb/` that teaches Claude how to use `jb`.
-
-## Storage
-
-All data stored in `~/.jb/`:
-
-```
-~/.jb/
-├── job.db        # SQLite database
-├── logs/         # Job output files
-├── daemon.sock   # IPC socket
-└── daemon.pid    # Daemon PID
-```
-
-Clean up: `rm -rf ~/.jb/`
-
-## Status
-
-Early development. See [ai/STATUS.md](ai/STATUS.md) for current state.
 
 ## License
 

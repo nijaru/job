@@ -122,3 +122,49 @@
 - Zero friction for first use
 - Agents can't handle prompts
 - `jb skills install` is the only setup command (opt-in)
+
+---
+
+## 2024-12-17: Single crate with daemon subcommand
+
+**Context**: Originally had 3 crates (jb, jbd, jb-core). `cargo install jb` didn't install daemon.
+
+**Decision**: Merge into single `jb` crate with hidden `jb daemon` subcommand.
+
+**Rationale**:
+
+- `cargo install jb` installs everything needed
+- No separate daemon binary to distribute
+- Client spawns `jb daemon` instead of looking for `jbd`
+- Simpler release process (one crate vs three)
+
+---
+
+## 2024-12-17: Short 4-char alphanumeric IDs
+
+**Context**: ULID generated 26-char uppercase IDs like `01KCQ0FPDS6ZYKMSV076QX9HTA`.
+
+**Decision**: 4-char lowercase alphanumeric IDs like `a3x9`.
+
+**Rationale**:
+
+- Easier to type and remember
+- 1.6M combinations (36^4) is plenty for job tracking
+- 100 collision retries handles edge cases
+- Matches beads-style short IDs
+- Lowercase is friendlier than UPPERCASE
+
+---
+
+## 2024-12-17: Orphan recovery marks jobs as "interrupted"
+
+**Context**: If daemon crashes, jobs in DB stay "running" forever.
+
+**Decision**: On startup, mark orphaned "running"/"pending" jobs as "interrupted".
+
+**Rationale**:
+
+- "Interrupted" is semantically correct (daemon tracking was interrupted)
+- Can't re-attach to orphaned processes
+- Don't know actual exit status, so can't mark completed/failed
+- Clean slate for new daemon instance
