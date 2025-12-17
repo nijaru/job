@@ -2,6 +2,7 @@ use crate::client::DaemonClient;
 use crate::core::ipc::{Request, Response};
 use crate::core::{Database, Job, Paths, parse_duration};
 use anyhow::Result;
+use std::time::{Duration, Instant};
 
 pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
     let paths = Paths::new();
@@ -28,7 +29,8 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
 
     // If already terminal, return immediately
     if job.status.is_terminal() {
-        return handle_terminal(&job);
+        handle_terminal(&job);
+        return Ok(());
     }
 
     let timeout_secs = timeout.map(|t| parse_duration(&t)).transpose()?;
@@ -42,7 +44,8 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
 
         match client.send(request).await? {
             Response::Job(completed) => {
-                return handle_terminal(&completed);
+                handle_terminal(&completed);
+                return Ok(());
             }
             Response::Error(e) => {
                 if e.contains("timed out") {
@@ -56,14 +59,14 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
     }
 
     // Fallback: poll DB
-    use std::time::{Duration, Instant};
     let start = Instant::now();
 
     loop {
         let current = db.get(&job.id)?.unwrap();
 
         if current.status.is_terminal() {
-            return handle_terminal(&current);
+            handle_terminal(&current);
+            return Ok(());
         }
 
         if let Some(timeout_secs) = timeout_secs
@@ -77,11 +80,10 @@ pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
     }
 }
 
-fn handle_terminal(job: &Job) -> Result<()> {
+fn handle_terminal(job: &Job) {
     match job.exit_code {
         Some(0) => {
             println!("Completed (exit 0)");
-            Ok(())
         }
         Some(code) => {
             println!("Failed (exit {code})");
@@ -89,7 +91,6 @@ fn handle_terminal(job: &Job) -> Result<()> {
         }
         None => {
             println!("{}", job.status);
-            Ok(())
         }
     }
 }

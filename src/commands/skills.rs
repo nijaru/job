@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 const SKILL_CONTENT: &str = include_str!("../../skills/SKILL.md");
 
-pub async fn execute(action: Option<SkillsAction>) -> Result<()> {
+pub fn execute(action: Option<SkillsAction>) -> Result<()> {
     match action {
         Some(SkillsAction::Install { path }) => {
             let skills_dir = path.unwrap_or_else(get_default_skills_dir);

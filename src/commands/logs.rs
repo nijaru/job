@@ -2,7 +2,7 @@ use crate::core::{Database, Paths};
 use anyhow::Result;
 use std::io::{BufRead, BufReader};
 
-pub async fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()> {
+pub fn execute(id: String, tail: Option<usize>, follow: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 

@@ -1,13 +1,8 @@
-use crate::core::{Database, Paths, Status, detect_project};
+use crate::core::{detect_project, Database, Paths, Status};
 use anyhow::Result;
 use std::env;
 
-pub async fn execute(
-    status_filter: Option<String>,
-    here: bool,
-    all: bool,
-    json: bool,
-) -> Result<()> {
+pub fn execute(status_filter: Option<String>, here: bool, all: bool, json: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 

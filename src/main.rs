@@ -167,11 +167,9 @@ async fn main() -> Result<()> {
             key,
             wait,
         } => commands::run::execute(command, name, timeout, context, key, wait, cli.json).await,
-        Commands::List { status, here, all } => {
-            commands::list::execute(status, here, all, cli.json).await
-        }
-        Commands::Status { id } => commands::status::execute(id, cli.json).await,
-        Commands::Logs { id, tail, follow } => commands::logs::execute(id, tail, follow).await,
+        Commands::List { status, here, all } => commands::list::execute(status, here, all, cli.json),
+        Commands::Status { id } => commands::status::execute(id, cli.json),
+        Commands::Logs { id, tail, follow } => commands::logs::execute(id, tail, follow),
         Commands::Stop { id, force } => commands::stop::execute(id, force, cli.json).await,
         Commands::Wait { id, timeout } => commands::wait::execute(id, timeout).await,
         Commands::Retry { id } => commands::retry::execute(id, cli.json).await,
@@ -179,8 +177,8 @@ async fn main() -> Result<()> {
             older_than,
             status,
             all,
-        } => commands::clean::execute(older_than, status, all).await,
-        Commands::Skills { action } => commands::skills::execute(action).await,
+        } => commands::clean::execute(older_than, status, all),
+        Commands::Skills { action } => commands::skills::execute(action),
         Commands::Daemon => commands::daemon::execute().await,
     }
 }

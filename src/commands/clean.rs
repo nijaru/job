@@ -2,7 +2,7 @@ use crate::core::{Database, Paths, Status, parse_duration};
 use anyhow::Result;
 use chrono::Utc;
 
-pub async fn execute(older_than: String, status: Option<String>, all: bool) -> Result<()> {
+pub fn execute(older_than: String, status: Option<String>, all: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 

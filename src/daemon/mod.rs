@@ -65,7 +65,9 @@ fn is_process_running(pid: u32) -> bool {
     use nix::sys::signal::kill;
     use nix::unistd::Pid;
     // Signal 0 (None) doesn't send a signal but checks if process exists
-    kill(Pid::from_raw(pid as i32), None).is_ok()
+    #[allow(clippy::cast_possible_wrap)] // PIDs are always < i32::MAX
+    let pid = Pid::from_raw(pid as i32);
+    kill(pid, None).is_ok()
 }
 
 #[cfg(not(unix))]

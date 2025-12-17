@@ -28,7 +28,7 @@ impl DaemonClient {
         }
 
         // Daemon not running, start it
-        start_daemon().await?;
+        start_daemon()?;
 
         // Wait for daemon to be ready
         for _ in 0..50 {
@@ -67,7 +67,7 @@ impl DaemonClient {
     }
 }
 
-async fn start_daemon() -> Result<()> {
+fn start_daemon() -> Result<()> {
     // Use same binary with "daemon" subcommand
     let exe = std::env::current_exe()?;
 

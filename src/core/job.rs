@@ -15,22 +15,22 @@ pub enum Status {
 
 impl Status {
     #[must_use]
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
-            Status::Pending => "pending",
-            Status::Running => "running",
-            Status::Completed => "completed",
-            Status::Failed => "failed",
-            Status::Stopped => "stopped",
-            Status::Interrupted => "interrupted",
+            Self::Pending => "pending",
+            Self::Running => "running",
+            Self::Completed => "completed",
+            Self::Failed => "failed",
+            Self::Stopped => "stopped",
+            Self::Interrupted => "interrupted",
         }
     }
 
     #[must_use]
-    pub fn is_terminal(&self) -> bool {
+    pub fn is_terminal(self) -> bool {
         matches!(
             self,
-            Status::Completed | Status::Failed | Status::Stopped | Status::Interrupted
+            Self::Completed | Self::Failed | Self::Stopped | Self::Interrupted
         )
     }
 }

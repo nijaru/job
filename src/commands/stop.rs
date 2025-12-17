@@ -66,7 +66,7 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
     if job.status == Status::Pending {
         db.update_status(&job.id, Status::Stopped)?;
     } else if let Some(pid) = job.pid {
-        kill_process(pid, force)?;
+        kill_process(pid, force);
         db.update_finished(&job.id, Status::Stopped, None)?;
     }
 
@@ -81,7 +81,7 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn kill_process(pid: u32, force: bool) -> Result<()> {
+fn kill_process(pid: u32, force: bool) {
     use nix::sys::signal::{Signal, killpg};
     use nix::unistd::Pid;
 
@@ -93,10 +93,9 @@ fn kill_process(pid: u32, force: bool) -> Result<()> {
 
     #[allow(clippy::cast_possible_wrap)] // PIDs are always < i32::MAX
     let _ = killpg(Pid::from_raw(pid as i32), signal);
-    Ok(())
 }
 
 #[cfg(not(unix))]
-fn kill_process(_pid: u32, _force: bool) -> Result<()> {
-    anyhow::bail!("Process termination not yet implemented on this platform")
+fn kill_process(_pid: u32, _force: bool) {
+    // No-op on non-Unix platforms
 }

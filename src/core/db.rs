@@ -1,8 +1,8 @@
-use crate::core::Paths;
 use crate::core::job::{Job, Status};
-use anyhow::{Result, bail};
+use crate::core::Paths;
+use anyhow::{bail, Result};
 use rand::Rng;
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
 pub struct Database {
@@ -80,7 +80,7 @@ impl Database {
             .query_row(
                 "SELECT * FROM jobs WHERE id = ?1 OR id LIKE ?2 || '%'",
                 params![id, id],
-                |row| self.row_to_job(row),
+                Self::row_to_job,
             )
             .optional()?;
         Ok(job)
@@ -89,7 +89,7 @@ impl Database {
     pub fn get_by_name(&self, name: &str) -> Result<Vec<Job>> {
         let mut stmt = self.conn.prepare("SELECT * FROM jobs WHERE name = ?1")?;
         let jobs = stmt
-            .query_map(params![name], |row| self.row_to_job(row))?
+            .query_map(params![name], Self::row_to_job)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(jobs)
     }
@@ -100,7 +100,7 @@ impl Database {
             .query_row(
                 "SELECT * FROM jobs WHERE idempotency_key = ?1",
                 params![key],
-                |row| self.row_to_job(row),
+                Self::row_to_job,
             )
             .optional()?;
         Ok(job)
@@ -126,7 +126,7 @@ impl Database {
         let params_refs: Vec<&dyn rusqlite::ToSql> =
             params_vec.iter().map(std::convert::AsRef::as_ref).collect();
         let jobs = stmt
-            .query_map(params_refs.as_slice(), |row| self.row_to_job(row))?
+            .query_map(params_refs.as_slice(), Self::row_to_job)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(jobs)
     }
@@ -181,7 +181,7 @@ impl Database {
         Ok(count)
     }
 
-    fn row_to_job(&self, row: &rusqlite::Row) -> rusqlite::Result<Job> {
+    fn row_to_job(row: &rusqlite::Row) -> rusqlite::Result<Job> {
         Ok(Job {
             id: row.get("id")?,
             name: row.get("name")?,
