@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use ulid::Ulid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -78,9 +77,9 @@ pub struct Job {
 
 impl Job {
     #[must_use]
-    pub fn new(command: String, cwd: PathBuf, project: PathBuf) -> Self {
+    pub fn new(id: String, command: String, cwd: PathBuf, project: PathBuf) -> Self {
         Self {
-            id: Ulid::new().to_string(),
+            id,
             name: None,
             command,
             status: Status::Pending,
@@ -123,6 +122,6 @@ impl Job {
 
     #[must_use]
     pub fn short_id(&self) -> &str {
-        &self.id[..8]
+        &self.id
     }
 }

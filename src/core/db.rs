@@ -1,7 +1,8 @@
-use crate::core::Paths;
 use crate::core::job::{Job, Status};
-use anyhow::Result;
-use rusqlite::{Connection, OptionalExtension, params};
+use crate::core::Paths;
+use anyhow::{bail, Result};
+use rand::Rng;
+use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
 pub struct Database {
@@ -209,5 +210,30 @@ impl Database {
                 .and_then(|s| serde_json::from_str(&s).ok()),
             idempotency_key: row.get("idempotency_key")?,
         })
+    }
+
+    pub fn job_exists(&self, id: &str) -> Result<bool> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM jobs WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
+    }
+
+    pub fn generate_id(&self) -> Result<String> {
+        const CHARS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+        let mut rng = rand::rng();
+
+        for _ in 0..100 {
+            let id: String = (0..4)
+                .map(|_| CHARS[rng.random_range(0..36)] as char)
+                .collect();
+            if !self.job_exists(&id)? {
+                return Ok(id);
+            }
+        }
+
+        bail!("Too many jobs - run `jb clean` to remove old jobs")
     }
 }

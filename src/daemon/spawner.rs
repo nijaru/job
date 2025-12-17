@@ -22,16 +22,23 @@ pub async fn spawn_job(
     context: Option<serde_json::Value>,
     idempotency_key: Option<String>,
 ) -> Response {
-    // Check idempotency key
-    if let Some(ref key) = idempotency_key {
+    // Check idempotency key and generate ID
+    let id = {
         let db = state.db.lock().unwrap();
-        if let Ok(Some(existing)) = db.get_by_idempotency_key(key) {
-            return Response::Job(Box::new(existing));
+        if let Some(ref key) = idempotency_key {
+            if let Ok(Some(existing)) = db.get_by_idempotency_key(key) {
+                return Response::Job(Box::new(existing));
+            }
         }
-    }
+        match db.generate_id() {
+            Ok(id) => id,
+            Err(e) => return Response::Error(e.to_string()),
+        }
+    };
 
     // Create job record
     let mut job = Job::new(
+        id,
         command.clone(),
         PathBuf::from(&cwd),
         PathBuf::from(&project),
