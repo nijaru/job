@@ -15,10 +15,10 @@ $ jb run "cargo build --release"
 a3x9
 
 $ jb list
-ID    STATUS     COMMAND
-a3x9  running    cargo build --release
+ID         STATUS       EXIT   NAME         COMMAND
+a3x9       running      -      -            cargo build --release
 
-$ jb logs a3x9
+$ jb logs a3x9 --follow
    Compiling foo v0.1.0
    ...
 
