@@ -12,6 +12,7 @@
 | Add `-n` limit flag    | Completed | `jb list -n 20` for custom limit        |
 | Add `-a` all flag      | Completed | Show all jobs (no limit)                |
 | Add `--failed` filter  | Completed | Shortcut for `--status failed`          |
+| Add test suite         | Completed | 33 unit tests, CI runs cargo test       |
 
 ## v0.0.4 (released)
 
@@ -65,5 +66,4 @@
 
 ## Known Limitations
 
-- No automated tests
 - No signal handling for graceful daemon shutdown
