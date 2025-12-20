@@ -6,30 +6,92 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
+use tokio::sync::watch;
 use tracing::{error, info, warn};
 
 pub async fn run(paths: Paths, state: Arc<DaemonState>) -> Result<()> {
     let listener = UnixListener::bind(paths.socket())?;
     info!("Listening on {}", paths.socket().display());
 
+    // Shutdown signal channel
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+
+    // Spawn signal handler
+    let shutdown_tx_clone = shutdown_tx.clone();
+    tokio::spawn(async move {
+        wait_for_shutdown_signal().await;
+        let _ = shutdown_tx_clone.send(true);
+    });
+
     loop {
-        match listener.accept().await {
-            Ok((stream, _addr)) => {
-                let state = state.clone();
-                tokio::spawn(async move {
-                    if let Err(e) = handle_connection(stream, state).await {
-                        error!("Connection error: {}", e);
+        tokio::select! {
+            result = listener.accept() => {
+                match result {
+                    Ok((stream, _addr)) => {
+                        let state = state.clone();
+                        let shutdown_tx = shutdown_tx.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = handle_connection(stream, state, shutdown_tx).await {
+                                error!("Connection error: {}", e);
+                            }
+                        });
                     }
-                });
+                    Err(e) => {
+                        error!("Accept error: {}", e);
+                    }
+                }
             }
-            Err(e) => {
-                error!("Accept error: {}", e);
+            _ = shutdown_signal(&shutdown_rx) => {
+                info!("Shutdown signal received, stopping daemon");
+                break;
             }
+        }
+    }
+
+    // Mark running jobs as interrupted
+    if let Err(e) = state.interrupt_running_jobs() {
+        error!("Failed to interrupt running jobs: {}", e);
+    }
+
+    info!("Daemon shutdown complete");
+    Ok(())
+}
+
+async fn wait_for_shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+        let mut sigterm = signal(SignalKind::terminate()).expect("failed to register SIGTERM");
+        let mut sigint = signal(SignalKind::interrupt()).expect("failed to register SIGINT");
+
+        tokio::select! {
+            _ = sigterm.recv() => info!("Received SIGTERM"),
+            _ = sigint.recv() => info!("Received SIGINT"),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to listen for ctrl-c");
+        info!("Received Ctrl+C");
+    }
+}
+
+async fn shutdown_signal(rx: &watch::Receiver<bool>) {
+    let mut rx = rx.clone();
+    while !*rx.borrow() {
+        if rx.changed().await.is_err() {
+            break;
         }
     }
 }
 
-async fn handle_connection(mut stream: UnixStream, state: Arc<DaemonState>) -> Result<()> {
+async fn handle_connection(
+    mut stream: UnixStream,
+    state: Arc<DaemonState>,
+    shutdown_tx: watch::Sender<bool>,
+) -> Result<()> {
     loop {
         let request = match read_message(&mut stream).await {
             Ok(Some(req)) => req,
@@ -40,7 +102,7 @@ async fn handle_connection(mut stream: UnixStream, state: Arc<DaemonState>) -> R
             }
         };
 
-        let response = handle_request(request, &state).await;
+        let response = handle_request(request, &state, &shutdown_tx).await;
 
         if let Err(e) = write_message(&mut stream, &response).await {
             warn!("Write error: {}", e);
@@ -83,7 +145,11 @@ async fn write_message(stream: &mut UnixStream, response: &Response) -> Result<(
     Ok(())
 }
 
-async fn handle_request(request: Request, state: &Arc<DaemonState>) -> Response {
+async fn handle_request(
+    request: Request,
+    state: &Arc<DaemonState>,
+    shutdown_tx: &watch::Sender<bool>,
+) -> Response {
     match request {
         Request::Ping => Response::Pong {
             pid: std::process::id(),
@@ -93,8 +159,9 @@ async fn handle_request(request: Request, state: &Arc<DaemonState>) -> Response 
         },
 
         Request::Shutdown => {
-            info!("Shutdown requested");
-            std::process::exit(0);
+            info!("Shutdown requested via IPC");
+            let _ = shutdown_tx.send(true);
+            Response::Ok
         }
 
         Request::Run {

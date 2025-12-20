@@ -80,4 +80,20 @@ impl DaemonState {
     ) -> anyhow::Result<Vec<Job>> {
         self.db.lock().unwrap().list(status, limit)
     }
+
+    /// Interrupt all running jobs on graceful shutdown.
+    pub fn interrupt_running_jobs(&self) -> anyhow::Result<()> {
+        let mut running = self.running_jobs.lock().unwrap();
+        let db = self.db.lock().unwrap();
+
+        for (id, mut job) in running.drain() {
+            warn!("Interrupting job {id} on shutdown");
+            // Kill the child process
+            let _ = job.child.start_kill();
+            // Mark as interrupted in database
+            let _ = db.update_finished(&id, Status::Interrupted, None);
+        }
+
+        Ok(())
+    }
 }

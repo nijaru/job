@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7] - 2025-12-20
+
+### Added
+
+- Graceful daemon shutdown on SIGTERM/SIGINT
+- Running jobs marked as interrupted on shutdown
+
+### Fixed
+
+- Cleanup of socket and PID files on daemon exit
+
 ## [0.0.6] - 2025-12-20
 
 ### Added

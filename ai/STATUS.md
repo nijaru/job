@@ -1,9 +1,17 @@
 # Status
 
-**Version**: 0.0.6 (released)
+**Version**: 0.0.7 (pending release)
 **Phase**: Published to crates.io + homebrew tap
 
-## v0.0.6 Changes
+## v0.0.7 Changes
+
+| Feature                   | Status    | Notes                                     |
+| ------------------------- | --------- | ----------------------------------------- |
+| Graceful daemon shutdown  | Completed | SIGTERM/SIGINT handled                    |
+| Interrupt running on exit | Completed | Jobs marked interrupted, processes killed |
+| Socket/PID cleanup        | Completed | Files removed on exit                     |
+
+## v0.0.6 (released)
 
 | Feature                  | Status    | Notes                                    |
 | ------------------------ | --------- | ---------------------------------------- |
@@ -75,4 +83,4 @@
 
 ## Known Limitations
 
-- No signal handling for graceful daemon shutdown
+(none)
