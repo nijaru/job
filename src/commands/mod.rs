@@ -1,4 +1,5 @@
 pub mod clean;
+pub mod completions;
 pub mod daemon;
 pub mod list;
 pub mod logs;

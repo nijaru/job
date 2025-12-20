@@ -1,6 +1,6 @@
 [package]
 name = "jb"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/nijaru/jb"
@@ -15,6 +15,7 @@ path = "src/main.rs"
 anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
 dirs = "6"
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
@@ -24,6 +25,7 @@ tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rand = "0.9"
+colored = "3"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.30", features = ["signal", "process"] }

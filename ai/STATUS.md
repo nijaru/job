@@ -1,9 +1,18 @@
 # Status
 
-**Version**: 0.0.5 (released)
+**Version**: 0.0.6 (pending release)
 **Phase**: Published to crates.io + homebrew tap
 
-## v0.0.5 Changes
+## v0.0.6 Changes
+
+| Feature                  | Status    | Notes                                    |
+| ------------------------ | --------- | ---------------------------------------- |
+| Fix UTF-8 truncation bug | Completed | Panic-safe multi-byte character handling |
+| Add color output         | Completed | Status column colored by state           |
+| Add shell completions    | Completed | `jb completions <shell> [--install]`     |
+| Add CHANGELOG.md         | Completed | Track changes across releases            |
+
+## v0.0.5 (released)
 
 | Feature                | Status    | Notes                                   |
 | ---------------------- | --------- | --------------------------------------- |

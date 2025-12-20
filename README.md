@@ -5,6 +5,10 @@ Background job manager. Run commands that persist after your terminal closes.
 ## Install
 
 ```bash
+# Homebrew
+brew install nijaru/tap/jb
+
+# Cargo
 cargo install jb
 ```
 
@@ -50,6 +54,8 @@ Exit: 0
 
 - Short memorable IDs (`a3x9`)
 - Clean output (last 10 jobs by default)
+- Color-coded status
+- Shell completions (bash, zsh, fish)
 - JSON output (`--json`)
 - Survives terminal disconnect
 - Auto-starts daemon
@@ -62,6 +68,18 @@ echo $!
 
 jb run "cmd"
 jb logs <id>
+```
+
+## Shell Completions
+
+```bash
+# Install once (recommended)
+jb completions zsh --install
+jb completions bash --install
+jb completions fish --install
+
+# Or generate to stdout
+jb completions zsh > ~/.zsh/completions/_jb
 ```
 
 ## For AI Agents

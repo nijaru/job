@@ -1,0 +1,79 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [0.0.6] - 2025-12-20
+
+### Added
+
+- Color output for job status in `jb list`
+- Shell completions via `jb completions <shell> [--install]` (bash, zsh, fish)
+
+### Fixed
+
+- UTF-8 truncation bug that could panic on multi-byte characters
+
+## [0.0.5] - 2025-12-20
+
+### Changed
+
+- `jb list` now shows last 10 jobs by default (was all jobs)
+- Removed project-scoped filtering for simpler mental model
+
+### Added
+
+- `-n` flag to limit number of jobs shown
+- `-a` flag to show all jobs
+- `--failed` filter shortcut for `--status failed`
+- Comprehensive test suite (33 unit tests)
+- CI now runs `cargo test`
+
+## [0.0.4] - 2025-12-19
+
+### Changed
+
+- Renamed `skills` command to `skill` (git-style singular)
+
+### Added
+
+- Homebrew tap: `brew install nijaru/tap/jb`
+
+## [0.0.3] - 2025-12-18
+
+### Added
+
+- `jb logs --follow` to stream output until job completes
+- `jb run --follow` to start and stream output
+- Exit code column in `jb list`
+
+## [0.0.2] - 2025-12-17
+
+### Changed
+
+- Short 4-character alphanumeric IDs (e.g., `a3x9`)
+- Orphan job recovery on daemon restart
+- Multiple daemon prevention via PID lock
+
+### Fixed
+
+- All clippy pedantic warnings
+
+## [0.0.1] - 2025-12-16
+
+Initial release.
+
+### Added
+
+- `jb run <cmd>` to start background jobs
+- `jb run --wait` to block until completion
+- `jb run -t <duration>` for timeout
+- `jb run -k <key>` for idempotency
+- `jb list` to show jobs
+- `jb status [id]` for system/job status
+- `jb logs <id>` to view output
+- `jb stop <id>` to terminate jobs
+- `jb wait <id>` to wait for completion
+- `jb retry <id>` to re-run jobs
+- `jb clean` to remove old jobs
+- `--json` flag for structured output
+- Daemon auto-start on first command

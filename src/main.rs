@@ -5,6 +5,7 @@ mod daemon;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use clap_complete::Shell;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -141,6 +142,16 @@ enum Commands {
     /// Run the daemon (internal use)
     #[command(hide = true)]
     Daemon,
+
+    /// Generate shell completions
+    Completions {
+        /// Shell to generate completions for
+        shell: Shell,
+
+        /// Install to standard location
+        #[arg(long)]
+        install: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -197,5 +208,6 @@ async fn main() -> Result<()> {
         } => commands::clean::execute(&older_than, status, all),
         Commands::Skill { action } => commands::skill::execute(action),
         Commands::Daemon => commands::daemon::execute().await,
+        Commands::Completions { shell, install } => commands::completions::execute(shell, install),
     }
 }

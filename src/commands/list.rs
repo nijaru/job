@@ -1,5 +1,6 @@
 use crate::core::{Database, Paths, Status};
 use anyhow::Result;
+use colored::Colorize;
 
 const DEFAULT_LIMIT: usize = 10;
 
@@ -44,11 +45,7 @@ pub fn execute(
 
     for job in jobs {
         let name = job.name.as_deref().unwrap_or("-");
-        let cmd = if job.command.len() > 28 {
-            format!("{}...", &job.command[..25])
-        } else {
-            job.command.clone()
-        };
+        let cmd = truncate(&job.command, 28);
         let started = job
             .started_at
             .map_or_else(|| "-".to_string(), format_relative_time);
@@ -56,10 +53,11 @@ pub fn execute(
             .exit_code
             .map_or_else(|| "-".to_string(), |c| c.to_string());
 
+        let status_colored = format_status(job.status);
         println!(
-            "{:<10} {:<12} {:<6} {:<12} {:<30} {}",
+            "{:<10} {} {:<6} {:<12} {:<30} {}",
             job.short_id(),
-            job.status,
+            status_colored,
             exit,
             truncate(name, 10),
             cmd,
@@ -70,9 +68,24 @@ pub fn execute(
     Ok(())
 }
 
+fn format_status(status: Status) -> String {
+    // Pad to 12 chars before colorizing to preserve alignment
+    let s = format!("{:<12}", status.as_str());
+    match status {
+        Status::Pending => s.yellow().to_string(),
+        Status::Running => s.cyan().bold().to_string(),
+        Status::Completed => s.green().to_string(),
+        Status::Failed => s.red().to_string(),
+        Status::Stopped => s.magenta().to_string(),
+        Status::Interrupted => s.yellow().dimmed().to_string(),
+    }
+}
+
 fn truncate(s: &str, max: usize) -> String {
-    if s.len() > max {
-        format!("{}...", &s[..max - 3])
+    let char_count = s.chars().count();
+    if char_count > max {
+        let truncated: String = s.chars().take(max.saturating_sub(3)).collect();
+        format!("{truncated}...")
     } else {
         s.to_string()
     }
