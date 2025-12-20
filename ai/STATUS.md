@@ -1,7 +1,7 @@
 # Status
 
-**Version**: 0.0.5 (ready to release)
-**Phase**: Simplified list UX
+**Version**: 0.0.5 (released)
+**Phase**: Published to crates.io + homebrew tap
 
 ## v0.0.5 Changes
 
