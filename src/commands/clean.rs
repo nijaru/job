@@ -16,6 +16,13 @@ pub fn execute(older_than: &str, status: Option<String>, all: bool) -> Result<()
 
     let status_filter = status.map(|s| s.parse::<Status>()).transpose()?;
 
+    // Log what we're doing
+    if all {
+        println!("Cleaning all non-running jobs...");
+    } else {
+        println!("Cleaning jobs older than {older_than}...");
+    }
+
     let count = db.delete_old(before, status_filter)?;
 
     // Clean up orphaned log files
