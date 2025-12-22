@@ -38,7 +38,7 @@ Exit: 0
 | `jb run <cmd>`          | Start background job     |
 | `jb run <cmd> --follow` | Start + stream output    |
 | `jb run <cmd> --wait`   | Start + wait silently    |
-| `jb list`               | List last 10 jobs        |
+| `jb list` (or `jb ls`)  | List last 10 jobs        |
 | `jb list -n 20`         | List last 20 jobs        |
 | `jb list -a`            | List all jobs            |
 | `jb list --failed`      | List failed jobs         |

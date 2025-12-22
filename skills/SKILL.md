@@ -41,7 +41,7 @@ jb run "cmd" --name build       # Named reference
 jb run "cmd" --timeout 30m      # With timeout
 jb run "cmd" --key "unique"     # Idempotent (won't duplicate)
 
-jb list                         # Last 10 jobs
+jb list                         # Last 10 jobs (alias: jb ls)
 jb list -n 20                   # Last 20 jobs
 jb list -a                      # All jobs
 jb list --failed                # Failed jobs only

@@ -54,6 +54,7 @@ enum Commands {
     },
 
     /// List jobs
+    #[command(visible_alias = "ls")]
     List {
         /// Filter by status (pending, running, completed, failed, stopped, interrupted)
         #[arg(short, long)]
@@ -121,7 +122,7 @@ enum Commands {
     /// Remove old jobs (default: older than 7d)
     Clean {
         /// Age threshold (e.g., 1d, 12h)
-        #[arg(long, default_value = "7d")]
+        #[arg(short = 't', long, default_value = "7d")]
         older_than: String,
 
         /// Filter: completed, failed, stopped, interrupted
@@ -129,7 +130,7 @@ enum Commands {
         status: Option<String>,
 
         /// Ignore age, remove all non-running jobs
-        #[arg(long)]
+        #[arg(short, long)]
         all: bool,
     },
 
