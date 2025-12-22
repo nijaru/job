@@ -61,12 +61,7 @@ impl DaemonState {
     }
 
     pub fn total_jobs(&self) -> usize {
-        self.db
-            .lock()
-            .unwrap()
-            .list(None, None)
-            .map(|j| j.len())
-            .unwrap_or(0)
+        self.db.lock().unwrap().count(None).unwrap_or(0)
     }
 
     pub fn get_job(&self, id: &str) -> anyhow::Result<Option<Job>> {

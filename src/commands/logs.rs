@@ -2,36 +2,18 @@ use crate::core::{Database, Paths};
 use anyhow::Result;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 pub fn execute(id: &str, tail: Option<usize>, follow: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
-
-    let job = db.get(id)?;
-    let job = if let Some(j) = job {
-        j
-    } else {
-        let by_name = db.get_by_name(id)?;
-        match by_name.len() {
-            0 => anyhow::bail!("No job found with ID or name '{id}'"),
-            1 => by_name.into_iter().next().unwrap(),
-            _ => {
-                eprintln!("Multiple jobs named '{id}'. Use ID instead:");
-                for j in by_name {
-                    eprintln!("  {} ({})", j.short_id(), j.status);
-                }
-                anyhow::bail!("Ambiguous job name");
-            }
-        }
-    };
-
+    let job = db.resolve(id)?;
     let log_path = paths.log_file(&job.id);
 
     if follow {
-        return follow_logs(&paths, &job.id, &log_path);
+        return follow_logs(&db, &paths, &job.id, &log_path);
     }
 
     // Non-follow mode: read existing content
@@ -58,7 +40,7 @@ pub fn execute(id: &str, tail: Option<usize>, follow: bool) -> Result<()> {
     Ok(())
 }
 
-fn follow_logs(paths: &Paths, job_id: &str, log_path: &Path) -> Result<()> {
+fn follow_logs(db: &Database, _paths: &Paths, job_id: &str, log_path: &Path) -> Result<()> {
     // Set up Ctrl+C handler - on interrupt, just exit cleanly (job continues)
     let interrupted = Arc::new(AtomicBool::new(false));
     let int_clone = Arc::clone(&interrupted);
@@ -73,7 +55,6 @@ fn follow_logs(paths: &Paths, job_id: &str, log_path: &Path) -> Result<()> {
         }
 
         // Check if job still exists and is not terminal
-        let db = Database::open(paths)?;
         if let Some(job) = db.get(job_id)? {
             if job.status.is_terminal() {
                 // Job finished before creating output
@@ -109,7 +90,6 @@ fn follow_logs(paths: &Paths, job_id: &str, log_path: &Path) -> Result<()> {
         }
 
         // Check job status
-        let db = Database::open(paths)?;
         if let Some(job) = db.get(job_id)? {
             if job.status.is_terminal() {
                 // Final read to catch any remaining output
@@ -143,7 +123,7 @@ fn follow_logs(paths: &Paths, job_id: &str, log_path: &Path) -> Result<()> {
 fn ctrlc_handler<F: Fn() + Send + Sync + 'static>(handler: F) {
     #[cfg(unix)]
     {
-        use nix::sys::signal::{SigHandler, Signal, signal};
+        use nix::sys::signal::{signal, SigHandler, Signal};
 
         static HANDLER: std::sync::OnceLock<Box<dyn Fn() + Send + Sync>> =
             std::sync::OnceLock::new();

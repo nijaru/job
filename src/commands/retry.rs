@@ -6,24 +6,7 @@ use anyhow::Result;
 pub async fn execute(id: String, json: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
-
-    let job = db.get(&id)?;
-    let job = if let Some(j) = job {
-        j
-    } else {
-        let by_name = db.get_by_name(&id)?;
-        match by_name.len() {
-            0 => anyhow::bail!("No job found with ID or name '{id}'"),
-            1 => by_name.into_iter().next().unwrap(),
-            _ => {
-                eprintln!("Multiple jobs named '{id}'. Use ID instead:");
-                for j in by_name {
-                    eprintln!("  {} ({})", j.short_id(), j.status);
-                }
-                anyhow::bail!("Ambiguous job name");
-            }
-        }
-    };
+    let job = db.resolve(&id)?;
 
     // Send to daemon
     let mut client = DaemonClient::connect_or_start().await?;

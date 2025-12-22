@@ -221,6 +221,47 @@ impl Database {
         Ok(count > 0)
     }
 
+    pub fn count(&self, status: Option<Status>) -> Result<usize> {
+        let (sql, params_vec): (&str, Vec<Box<dyn rusqlite::ToSql>>) = match status {
+            Some(s) => (
+                "SELECT COUNT(*) FROM jobs WHERE status = ?1",
+                vec![Box::new(s.as_str().to_string())],
+            ),
+            None => ("SELECT COUNT(*) FROM jobs", vec![]),
+        };
+
+        let params_refs: Vec<&dyn rusqlite::ToSql> =
+            params_vec.iter().map(std::convert::AsRef::as_ref).collect();
+
+        let count: i64 = self
+            .conn
+            .query_row(sql, params_refs.as_slice(), |row| row.get(0))?;
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        Ok(count as usize)
+    }
+
+    /// Resolve a job by ID or name. Returns error if not found or ambiguous.
+    pub fn resolve(&self, id: &str) -> Result<Job> {
+        // Try by ID first
+        if let Some(job) = self.get(id)? {
+            return Ok(job);
+        }
+
+        // Try by name
+        let by_name = self.get_by_name(id)?;
+        match by_name.len() {
+            0 => bail!("No job found with ID or name '{id}'"),
+            1 => Ok(by_name.into_iter().next().unwrap()),
+            _ => {
+                eprintln!("Multiple jobs named '{id}'. Use ID instead:");
+                for j in &by_name {
+                    eprintln!("  {} ({})", j.short_id(), j.status);
+                }
+                bail!("Ambiguous job name")
+            }
+        }
+    }
+
     pub fn generate_id(&self) -> Result<String> {
         const CHARS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
         let mut rng = rand::rng();
@@ -474,5 +515,72 @@ mod tests {
 
         db.insert(&job1).unwrap();
         assert!(db.insert(&job2).is_err());
+    }
+
+    #[test]
+    fn test_count_all() {
+        let (db, _tmp) = test_db();
+        assert_eq!(db.count(None).unwrap(), 0);
+
+        db.insert(&create_test_job("a", Status::Running)).unwrap();
+        db.insert(&create_test_job("b", Status::Completed)).unwrap();
+        db.insert(&create_test_job("c", Status::Failed)).unwrap();
+
+        assert_eq!(db.count(None).unwrap(), 3);
+    }
+
+    #[test]
+    fn test_count_by_status() {
+        let (db, _tmp) = test_db();
+        db.insert(&create_test_job("a", Status::Running)).unwrap();
+        db.insert(&create_test_job("b", Status::Running)).unwrap();
+        db.insert(&create_test_job("c", Status::Failed)).unwrap();
+
+        assert_eq!(db.count(Some(Status::Running)).unwrap(), 2);
+        assert_eq!(db.count(Some(Status::Failed)).unwrap(), 1);
+        assert_eq!(db.count(Some(Status::Completed)).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_resolve_by_id() {
+        let (db, _tmp) = test_db();
+        db.insert(&create_test_job("abc1", Status::Running))
+            .unwrap();
+
+        let job = db.resolve("abc1").unwrap();
+        assert_eq!(job.id, "abc1");
+
+        // Prefix also works
+        let job = db.resolve("abc").unwrap();
+        assert_eq!(job.id, "abc1");
+    }
+
+    #[test]
+    fn test_resolve_by_name() {
+        let (db, _tmp) = test_db();
+        let job = create_test_job("abc1", Status::Running).with_name("my-job");
+        db.insert(&job).unwrap();
+
+        let resolved = db.resolve("my-job").unwrap();
+        assert_eq!(resolved.id, "abc1");
+    }
+
+    #[test]
+    fn test_resolve_not_found() {
+        let (db, _tmp) = test_db();
+        let result = db.resolve("nonexistent");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_resolve_ambiguous() {
+        let (db, _tmp) = test_db();
+        db.insert(&create_test_job("a", Status::Running).with_name("same-name"))
+            .unwrap();
+        db.insert(&create_test_job("b", Status::Failed).with_name("same-name"))
+            .unwrap();
+
+        let result = db.resolve("same-name");
+        assert!(result.is_err());
     }
 }
