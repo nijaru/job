@@ -82,7 +82,7 @@ impl DaemonState {
     }
 
     /// Interrupt all running jobs on graceful shutdown.
-    pub fn interrupt_running_jobs(&self) -> anyhow::Result<()> {
+    pub fn interrupt_running_jobs(&self) {
         let mut running = self.running_jobs.lock().unwrap();
         let db = self.db.lock().unwrap();
 
@@ -93,7 +93,5 @@ impl DaemonState {
             // Mark as interrupted in database
             let _ = db.update_finished(&id, Status::Interrupted, None);
         }
-
-        Ok(())
     }
 }

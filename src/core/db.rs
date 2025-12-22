@@ -1,8 +1,8 @@
-use crate::core::Paths;
 use crate::core::job::{Job, Status};
-use anyhow::{Result, bail};
+use crate::core::Paths;
+use anyhow::{bail, Result};
 use rand::Rng;
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
 pub struct Database {
@@ -118,7 +118,8 @@ impl Database {
         sql.push_str(" ORDER BY created_at DESC");
 
         if let Some(n) = limit {
-            sql.push_str(&format!(" LIMIT {n}"));
+            use std::fmt::Write;
+            let _ = write!(sql, " LIMIT {n}");
         }
 
         let mut stmt = self.conn.prepare(&sql)?;

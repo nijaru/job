@@ -41,7 +41,7 @@ pub async fn run(paths: Paths, state: Arc<DaemonState>) -> Result<()> {
                     }
                 }
             }
-            _ = shutdown_signal(&shutdown_rx) => {
+            () = shutdown_signal(&shutdown_rx) => {
                 info!("Shutdown signal received, stopping daemon");
                 break;
             }
@@ -49,9 +49,7 @@ pub async fn run(paths: Paths, state: Arc<DaemonState>) -> Result<()> {
     }
 
     // Mark running jobs as interrupted
-    if let Err(e) = state.interrupt_running_jobs() {
-        error!("Failed to interrupt running jobs: {}", e);
-    }
+    state.interrupt_running_jobs();
 
     info!("Daemon shutdown complete");
     Ok(())
