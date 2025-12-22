@@ -43,6 +43,8 @@ Exit: 0
 | `jb list -a`            | List all jobs            |
 | `jb list --failed`      | List failed jobs         |
 | `jb logs <id>`          | View output              |
+| `jb logs <id> --tail`   | Last 50 lines            |
+| `jb logs <id> --tail N` | Last N lines             |
 | `jb logs <id> --follow` | Stream output until done |
 | `jb status <id>`        | Job details              |
 | `jb stop <id>`          | Stop job                 |

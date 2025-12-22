@@ -51,8 +51,8 @@ jb status <id>                  # Job details
 jb status                       # Daemon status
 
 jb logs <id>                    # Full output
-jb logs <id> --tail             # Last 50 lines
-jb logs <id> --follow           # Stream live
+jb logs <id> --tail [N]         # Last N lines (default: 50)
+jb logs <id> --follow           # Stream live (uses context, prefer --tail for polling)
 
 jb stop <id>                    # Graceful (SIGTERM)
 jb stop <id> --force            # Kill (SIGKILL)
