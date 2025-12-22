@@ -63,7 +63,8 @@ jb wait <id> --timeout 5m       # Exit: 0=success, 1=failed, 124=timeout
 jb retry <id>                   # Re-run failed job
 
 jb clean                        # Remove >7 days old
-jb clean --older-than 1d
+jb clean -t 1d                  # Remove older than 1d
+jb clean -a                     # Remove all non-running
 ```
 
 ## Patterns

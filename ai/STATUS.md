@@ -5,14 +5,17 @@
 
 ## Current Work (v0.0.8)
 
-| Task                           | Status    | Notes                                   |
-| ------------------------------ | --------- | --------------------------------------- |
-| Linux testing on Fedora        | Completed | All features verified working           |
-| Docs: --tail [N] clarification | Completed | Skill and README updated                |
-| Fix redundant help defaults    | Completed | clean --help no longer shows default 2x |
-| Improve clean output/help      | Completed | Single-line output, cleaner help text   |
-| Add `ls` alias for list        | Completed | `jb ls` works, shown in help            |
-| Review all CLI help text       | Completed | All commands verified consistent        |
+| Task                           | Status    | Notes                                      |
+| ------------------------------ | --------- | ------------------------------------------ |
+| Linux testing on Fedora        | Completed | All features verified working              |
+| Docs: --tail [N] clarification | Completed | Skill and README updated                   |
+| Fix redundant help defaults    | Completed | clean --help no longer shows default 2x    |
+| Improve clean output/help      | Completed | Single-line output, cleaner help text      |
+| Add `ls` alias for list        | Completed | `jb ls` works, shown in help               |
+| Add `-t` flag for clean        | Completed | `jb clean -t 1d` for --older-than          |
+| Add `-a` flag for clean        | Completed | `jb clean -a` for --all, matches list      |
+| Review all CLI help text       | Completed | All commands verified consistent           |
+| Document SIGTERM limitation    | Completed | Shell wrapper issue in ai/SIGTERM_ISSUE.md |
 
 ## v0.0.7 Changes
 
