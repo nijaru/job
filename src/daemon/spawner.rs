@@ -1,14 +1,14 @@
 use crate::core::ipc::Response;
-use crate::core::{Job, Status};
-use crate::daemon::state::{DaemonState, RunningJob, kill_process_group};
+use crate::core::{Job, Status, kill_process_group};
+use crate::daemon::state::{DaemonState, RunningJob};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::fs::File;
 use tokio::process::Command;
-use tokio::sync::oneshot;
-use tracing::{error, info};
+use tokio::sync::{oneshot, watch};
+use tracing::{error, info, warn};
 
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::unused_async)]
@@ -79,6 +79,19 @@ pub async fn spawn_job(
     Response::Job(Box::new(job))
 }
 
+/// Time to wait for graceful shutdown before SIGKILL
+const GRACEFUL_SHUTDOWN_SECS: u64 = 2;
+
+/// Signal completion to any waiting callers
+fn signal_completion(job: Option<RunningJob>) {
+    if let Some(j) = job
+        && let Some(tx) = j.completion_tx
+    {
+        let _ = tx.send(());
+    }
+}
+
+#[allow(clippy::too_many_lines)]
 async fn run_job(
     state: &Arc<DaemonState>,
     job_id: String,
@@ -93,7 +106,7 @@ async fn run_job(
     let log_file_std = log_file.into_std().await;
 
     // Spawn process in new session (detached)
-    let child = Command::new("sh")
+    let mut child = Command::new("sh")
         .arg("-c")
         .arg(&command)
         .current_dir(&cwd)
@@ -112,124 +125,136 @@ async fn run_job(
 
     info!("Job {} started with PID {}", job_id, pid);
 
-    // Create channel for completion notification
-    let (tx, rx) = oneshot::channel();
+    // Create channels for completion notification and stop signal
+    let (completion_tx, _completion_rx) = oneshot::channel();
+    let (stop_tx, mut stop_rx) = watch::channel(false);
 
-    // Track running job and spawn monitor task
+    // Track running job
     {
         let mut running = state.running_jobs.lock().unwrap();
         running.insert(
             job_id.clone(),
             RunningJob {
-                child,
                 pid,
-                completion_tx: Some(tx),
+                stop_tx,
+                completion_tx: Some(completion_tx),
             },
         );
     }
 
-    // Spawn a task to wait for the process
-    let state_clone = state.clone();
-    let job_id_clone = job_id.clone();
-    tokio::spawn(async move {
-        monitor_job(&state_clone, &job_id_clone, timeout_secs).await;
-    });
+    // Event-based monitoring with tokio::select!
+    // Note: We use changed() instead of wait_for() because wait_for() returns
+    // a non-Send guard that causes issues with tokio::spawn
+    let result = if let Some(timeout) = timeout_secs {
+        tokio::select! {
+            biased;
 
-    // Wait for completion signal
-    let _ = rx.await;
+            // Stop signal from stop_job or interrupt_running_jobs
+            // (changed() returns when value is updated; we only send true)
+            _ = stop_rx.changed() => {
+                JobResult::Stopped
+            }
+
+            // Timeout expired - escalate: SIGTERM → wait → SIGKILL
+            () = tokio::time::sleep(Duration::from_secs(timeout)) => {
+                warn!("Job {} timed out after {}s, sending SIGTERM", job_id, timeout);
+                kill_process_group(pid, false); // SIGTERM first
+
+                // Give process time to exit gracefully
+                tokio::select! {
+                    biased;
+                    _ = stop_rx.changed() => JobResult::Stopped,
+                    status = child.wait() => JobResult::Completed(status.ok()),
+                    () = tokio::time::sleep(Duration::from_secs(GRACEFUL_SHUTDOWN_SECS)) => {
+                        warn!("Job {} did not exit after SIGTERM, sending SIGKILL", job_id);
+                        kill_process_group(pid, true); // Force kill
+                        JobResult::Timeout
+                    }
+                }
+            }
+
+            // Process exited normally
+            status = child.wait() => {
+                JobResult::Completed(status.ok())
+            }
+        }
+    } else {
+        // No timeout - just wait for exit or stop signal
+        tokio::select! {
+            biased;
+
+            _ = stop_rx.changed() => {
+                JobResult::Stopped
+            }
+
+            status = child.wait() => {
+                JobResult::Completed(status.ok())
+            }
+        }
+    };
+
+    // Remove from running jobs
+    let removed = {
+        let mut running = state.running_jobs.lock().unwrap();
+        running.remove(&job_id)
+    };
+
+    // Handle result
+    match result {
+        JobResult::Stopped => {
+            // stop_job already updated DB, just signal completion
+            signal_completion(removed);
+        }
+        JobResult::Timeout => {
+            // Update DB with timeout status
+            {
+                let db = state.db.lock().unwrap();
+                let _ = db.update_finished(&job_id, Status::Stopped, None);
+            }
+            info!("Job {} timed out", job_id);
+            signal_completion(removed);
+        }
+        JobResult::Completed(exit_status) => {
+            let (status, exit_code) = match exit_status {
+                Some(es) if es.success() => (Status::Completed, es.code()),
+                Some(es) => (Status::Failed, es.code()),
+                None => (Status::Failed, None),
+            };
+
+            {
+                let db = state.db.lock().unwrap();
+                let _ = db.update_finished(&job_id, status, exit_code);
+            }
+            info!("Job {} finished with status {:?}", job_id, status);
+            signal_completion(removed);
+        }
+    }
 
     Ok(())
 }
 
-async fn monitor_job(state: &Arc<DaemonState>, job_id: &str, timeout_secs: Option<u64>) {
-    let start = std::time::Instant::now();
-    let timeout = timeout_secs.map(Duration::from_secs);
-
-    // Poll the process status
-    let result = loop {
-        // Check if process is done
-        let status = {
-            let mut running = state.running_jobs.lock().unwrap();
-            if let Some(job) = running.get_mut(job_id) {
-                match job.child.try_wait() {
-                    Ok(Some(status)) => Some(Ok(status)),
-                    Ok(None) => None,
-                    Err(e) => Some(Err(e)),
-                }
-            } else {
-                break None;
-            }
-        };
-
-        if let Some(result) = status {
-            break Some(result);
-        }
-
-        // Check timeout
-        if let Some(t) = timeout
-            && start.elapsed() >= t
-        {
-            // Kill the entire process group on timeout
-            let running = state.running_jobs.lock().unwrap();
-            if let Some(job) = running.get(job_id) {
-                kill_process_group(job.pid, true); // Force kill on timeout
-            }
-            break None;
-        }
-
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    };
-
-    // Remove from running jobs - if already removed (by stop_job), don't update DB
-    let removed = {
-        let mut running = state.running_jobs.lock().unwrap();
-        running.remove(job_id)
-    };
-
-    let Some(job) = removed else {
-        // Job was removed by stop_job, which handles DB update
-        return;
-    };
-
-    // Update DB with final status
-    let (status, exit_code) = match result {
-        Some(Ok(exit_status)) => {
-            if exit_status.success() {
-                (Status::Completed, exit_status.code())
-            } else {
-                (Status::Failed, exit_status.code())
-            }
-        }
-        Some(Err(_)) => (Status::Failed, None),
-        None => (Status::Stopped, None), // Timeout or killed
-    };
-
-    {
-        let db = state.db.lock().unwrap();
-        let _ = db.update_finished(job_id, status, exit_code);
-    }
-
-    info!("Job {} finished with status {:?}", job_id, status);
-
-    // Signal completion
-    if let Some(tx) = job.completion_tx {
-        let _ = tx.send(());
-    }
+enum JobResult {
+    Completed(Option<std::process::ExitStatus>),
+    Stopped,
+    Timeout,
 }
 
 pub fn stop_job(state: &Arc<DaemonState>, job_id: &str, force: bool) -> Response {
-    // Remove from running jobs and kill - this prevents monitor from updating status
-    let removed = {
-        let mut running = state.running_jobs.lock().unwrap();
-        running.remove(job_id)
+    // Get job info and signal stop
+    let job = {
+        let running = state.running_jobs.lock().unwrap();
+        running.get(job_id).map(|j| (j.pid, j.stop_tx.clone()))
     };
 
-    let Some(job) = removed else {
+    let Some((pid, stop_tx)) = job else {
         return Response::Error(format!("Job {job_id} is not running"));
     };
 
+    // Signal the run_job task to stop (will break out of select!)
+    let _ = stop_tx.send(true);
+
     // Kill the entire process group (not just the shell wrapper)
-    kill_process_group(job.pid, force);
+    kill_process_group(pid, force);
 
     // Update DB
     {
@@ -238,11 +263,6 @@ pub fn stop_job(state: &Arc<DaemonState>, job_id: &str, force: bool) -> Response
     }
 
     info!("Job {} stopped", job_id);
-
-    // Signal completion
-    if let Some(tx) = job.completion_tx {
-        let _ = tx.send(());
-    }
 
     Response::Ok
 }

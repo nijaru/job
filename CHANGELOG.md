@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.10] - 2025-12-22
+
+### Changed
+
+- **Event-based job monitoring** replaces 100ms polling
+  - Uses `tokio::select!` for instant process exit detection
+  - Lower CPU usage, instant completion detection
+
+- **Graceful timeout escalation**
+  - Previously: Immediate SIGKILL on timeout
+  - Now: SIGTERM → 2s wait → SIGKILL
+  - Processes that handle SIGTERM get time to cleanup
+
+- **Efficient `--tail` for large logs**
+  - Previously: Loaded entire file into memory
+  - Now: Seek-based backward scan, works with GB files
+
+### Fixed
+
+- Deduplicated `kill_process_group` to `core/` shared module
+
 ## [0.0.9] - 2025-12-21
 
 ### Fixed

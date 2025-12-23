@@ -9,6 +9,33 @@ pub use job::{Job, Status};
 pub use paths::Paths;
 pub use project::detect_project;
 
+/// Kill an entire process group.
+/// The PID is the process group leader (child was spawned with `process_group(0)`).
+#[cfg(unix)]
+pub fn kill_process_group(pid: u32, force: bool) {
+    use nix::sys::signal::{Signal, killpg};
+    use nix::unistd::Pid;
+
+    // SAFETY: Never signal pid 0 - that would kill our own process group!
+    if pid == 0 {
+        return;
+    }
+
+    let signal = if force {
+        Signal::SIGKILL
+    } else {
+        Signal::SIGTERM
+    };
+
+    #[allow(clippy::cast_possible_wrap)]
+    let _ = killpg(Pid::from_raw(pid as i32), signal);
+}
+
+#[cfg(not(unix))]
+pub fn kill_process_group(_pid: u32, _force: bool) {
+    // No-op on non-Unix platforms
+}
+
 /// Parse a duration string like "30s", "5m", "1h", "7d" into seconds
 pub fn parse_duration(s: &str) -> anyhow::Result<u64> {
     let s = s.trim();

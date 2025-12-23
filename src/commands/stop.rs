@@ -1,6 +1,6 @@
 use crate::client::DaemonClient;
 use crate::core::ipc::{Request, Response};
-use crate::core::{Database, Paths, Status};
+use crate::core::{Database, Paths, Status, kill_process_group};
 use anyhow::Result;
 
 pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
@@ -48,7 +48,7 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
     if job.status == Status::Pending {
         db.update_status(&job.id, Status::Stopped)?;
     } else if let Some(pid) = job.pid {
-        kill_process(pid, force);
+        kill_process_group(pid, force);
         db.update_finished(&job.id, Status::Stopped, None)?;
     }
 
@@ -60,29 +60,4 @@ pub async fn execute(id: String, force: bool, json: bool) -> Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(unix)]
-fn kill_process(pid: u32, force: bool) {
-    use nix::sys::signal::{Signal, killpg};
-    use nix::unistd::Pid;
-
-    // Never signal pid 0 - that would kill our own process group
-    if pid == 0 {
-        return;
-    }
-
-    let signal = if force {
-        Signal::SIGKILL
-    } else {
-        Signal::SIGTERM
-    };
-
-    #[allow(clippy::cast_possible_wrap)]
-    let _ = killpg(Pid::from_raw(pid as i32), signal);
-}
-
-#[cfg(not(unix))]
-fn kill_process(_pid: u32, _force: bool) {
-    // No-op on non-Unix platforms
 }

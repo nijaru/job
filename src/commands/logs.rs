@@ -26,20 +26,79 @@ pub fn execute(id: &str, tail: Option<usize>, follow: bool) -> Result<()> {
         return Ok(());
     }
 
-    let file = std::fs::File::open(&log_path)?;
-    let reader = BufReader::new(file);
-    let lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
-
-    let output_lines = if let Some(n) = tail {
-        let start = lines.len().saturating_sub(n);
-        &lines[start..]
+    if let Some(n) = tail {
+        // Efficient tail: read last N lines without loading entire file
+        tail_last_n_lines(&log_path, n)?;
     } else {
-        &lines[..]
+        // Stream entire file line by line (memory efficient)
+        let file = std::fs::File::open(&log_path)?;
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            println!("{}", line?);
+        }
+    }
+
+    Ok(())
+}
+
+/// Read last N lines from a file without loading the entire file into memory.
+/// Uses backward chunk reading to find line boundaries efficiently.
+fn tail_last_n_lines(path: &Path, n: usize) -> Result<()> {
+    use std::io::BufWriter;
+
+    const CHUNK_SIZE: u64 = 8192;
+
+    let mut file = std::fs::File::open(path)?;
+    let len = file.metadata()?.len();
+    if len == 0 || n == 0 {
+        return Ok(());
+    }
+
+    let mut newline_positions: Vec<u64> = Vec::with_capacity(n + 1);
+    let mut pos = len;
+
+    // Scan backwards to find newline positions
+    while pos > 0 && newline_positions.len() <= n {
+        let chunk_start = pos.saturating_sub(CHUNK_SIZE);
+        #[allow(clippy::cast_possible_truncation)]
+        let chunk_len = (pos - chunk_start) as usize;
+
+        file.seek(SeekFrom::Start(chunk_start))?;
+        let mut buf = vec![0u8; chunk_len];
+        file.read_exact(&mut buf)?;
+
+        // Scan chunk backwards for newlines
+        for (i, &byte) in buf.iter().enumerate().rev() {
+            if byte == b'\n' {
+                let abs_pos = chunk_start + i as u64;
+                // Don't count trailing newline at end of file
+                if abs_pos + 1 < len {
+                    newline_positions.push(abs_pos + 1); // Position after newline
+                }
+                if newline_positions.len() > n {
+                    break;
+                }
+            }
+        }
+
+        pos = chunk_start;
+    }
+
+    // Determine start position
+    // newline_positions stores positions AFTER each newline (line starts)
+    // To get last n lines, we need newline_positions[n-1] (0-indexed)
+    let start_pos = if newline_positions.len() >= n {
+        newline_positions[n - 1]
+    } else {
+        0 // File has fewer than n lines, read from start
     };
 
-    for line in output_lines {
-        println!("{line}");
-    }
+    // Stream from start_pos to end
+    file.seek(SeekFrom::Start(start_pos))?;
+    let mut reader = BufReader::new(file);
+    let stdout = std::io::stdout();
+    let mut writer = BufWriter::new(stdout.lock());
+    std::io::copy(&mut reader, &mut writer)?;
 
     Ok(())
 }

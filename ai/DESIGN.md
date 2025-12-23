@@ -115,10 +115,11 @@ jb logs abc1 --follow           # Attach to running job, stream until done
 ## Process Lifecycle
 
 1. `jb run "cmd"` connects to daemon (starts if needed)
-2. Daemon generates 4-char ID, spawns detached process
-3. Output captured to `~/.local/share/jb/logs/<id>.log`
-4. Daemon monitors via PID polling
+2. Daemon generates 4-char ID, spawns detached process in new process group
+3. Output captured to `~/.jb/logs/<id>.log`
+4. Daemon awaits process exit via `tokio::select!` (event-based, not polling)
 5. On completion, updates DB with exit code
+6. On timeout: SIGTERM → 2s wait → SIGKILL (graceful escalation)
 
 ## Daemon Robustness
 

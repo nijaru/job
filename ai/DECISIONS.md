@@ -228,3 +228,48 @@ Unix philosophy: let the shell handle sequencing and filtering. Keep jb focused 
 - `--all` now means "all jobs" (no limit), not "all projects"
 - `--here` removed (no project scoping)
 - Default behavior changed from "all statuses, current project" to "last 10, all projects"
+
+---
+
+## 2024-12-22: Event-based monitoring over polling
+
+**Context**: Job completion was detected via 100ms polling loop with `try_wait()`.
+
+**Decision**: Use `tokio::select!` with `child.wait()` for instant process exit detection.
+
+**Rationale**:
+
+- Instant completion detection (was 0-100ms latency)
+- Lower CPU usage (no busy polling)
+- Cleaner code structure with select! branches
+- Stop signal handled via watch channel, integrates cleanly
+
+---
+
+## 2024-12-22: Graceful timeout escalation (SIGTERM → SIGKILL)
+
+**Context**: Timeout handling immediately sent SIGKILL, giving processes no chance to cleanup.
+
+**Decision**: On timeout, send SIGTERM first, wait 2s, then SIGKILL if still running.
+
+**Rationale**:
+
+- Processes that handle SIGTERM (cleanup temp files, flush buffers) get 2s to exit
+- Well-behaved processes exit faster than previous instant-SIGKILL
+- Stubborn processes still killed after 2s (not indefinite wait)
+- Standard Unix practice (Docker, systemd use similar escalation)
+
+---
+
+## 2024-12-22: Seek-based `--tail` for large logs
+
+**Context**: `jb logs <id> --tail N` loaded entire file into memory to get last N lines.
+
+**Decision**: Scan backwards from end of file to find N newlines, then stream from that position.
+
+**Rationale**:
+
+- Works with GB-sized log files without memory issues
+- Only reads ~8KB chunks from end of file
+- Streaming output to stdout (no full file buffering)
+- Same user-visible behavior, better resource usage

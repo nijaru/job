@@ -1,43 +1,14 @@
-use crate::core::{Database, Job, Paths, Status};
+use crate::core::{Database, Job, Paths, Status, kill_process_group};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
-use tokio::process::Child;
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, watch};
 use tracing::warn;
 
 pub struct RunningJob {
-    pub child: Child,
     pub pid: u32,
+    pub stop_tx: watch::Sender<bool>,
     pub completion_tx: Option<oneshot::Sender<()>>,
-}
-
-/// Kill an entire process group.
-/// The PID is the process group leader (child was spawned with `process_group(0)`).
-#[cfg(unix)]
-pub fn kill_process_group(pid: u32, force: bool) {
-    use nix::sys::signal::{Signal, killpg};
-    use nix::unistd::Pid;
-
-    // SAFETY: Never signal pid 0 - that would kill our own process group!
-    if pid == 0 {
-        warn!("Attempted to kill process group with pid 0, ignoring");
-        return;
-    }
-
-    let signal = if force {
-        Signal::SIGKILL
-    } else {
-        Signal::SIGTERM
-    };
-
-    #[allow(clippy::cast_possible_wrap)]
-    let _ = killpg(Pid::from_raw(pid as i32), signal);
-}
-
-#[cfg(not(unix))]
-pub fn kill_process_group(_pid: u32, _force: bool) {
-    // On non-Unix, fallback to nothing (child.kill handled separately)
 }
 
 pub struct DaemonState {
@@ -98,6 +69,8 @@ impl DaemonState {
 
         for (id, job) in running.drain() {
             warn!("Interrupting job {id} on shutdown");
+            // Signal the job to stop (will break out of select!)
+            let _ = job.stop_tx.send(true);
             // Kill the entire process group (not just the shell wrapper)
             kill_process_group(job.pid, false);
             // Mark as interrupted in database

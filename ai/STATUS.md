@@ -1,9 +1,18 @@
 # Status
 
-**Version**: 0.0.9 (ready to release)
-**Phase**: Process group signaling fix implemented
+**Version**: 0.0.10 (ready to release)
+**Phase**: Performance and reliability improvements
 
-## Current Work (v0.0.9)
+## Current Work (v0.0.10)
+
+| Task                           | Status    | Notes                                   |
+| ------------------------------ | --------- | --------------------------------------- |
+| Event-based job monitoring     | Completed | `tokio::select!` replaces 100ms polling |
+| Graceful timeout escalation    | Completed | SIGTERM → 2s wait → SIGKILL             |
+| Efficient `--tail` for logs    | Completed | Seek-based, works with GB files         |
+| Deduplicate kill_process_group | Completed | Moved to `core/` shared module          |
+
+## v0.0.9 (released)
 
 | Task                         | Status    | Notes                                   |
 | ---------------------------- | --------- | --------------------------------------- |
