@@ -37,7 +37,7 @@ Do NOT use for: quick commands (<10s), interactive/TTY, stdin-dependent.
 jb run "cmd"                    # Start, returns ID immediately
 jb run "cmd" --follow           # Start + stream output (resilient foreground)
 jb run "cmd" --wait             # Start and wait silently
-jb run "cmd" --name build       # Named reference
+jb run "cmd" --name build       # Named reference (unique while running)
 jb run "cmd" --timeout 30m      # With timeout
 jb run "cmd" --key "unique"     # Idempotent (won't duplicate)
 
@@ -66,6 +66,13 @@ jb clean                        # Remove >7 days old
 jb clean -t 1d                  # Remove older than 1d
 jb clean -a                     # Remove all non-running
 ```
+
+## Names
+
+- Names are **unique while running**: can't start `--name build` if another `build` is running
+- Names are **released on completion**: can reuse name after job finishes
+- `jb logs build` returns the **most recent** job named "build"
+- Use names for the "current" job, use IDs for historical lookups
 
 ## Patterns
 
