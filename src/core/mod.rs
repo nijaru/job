@@ -1,10 +1,12 @@
 pub mod db;
+pub mod error;
 pub mod ipc;
 pub mod job;
 pub mod paths;
 pub mod project;
 
-pub use db::Database;
+pub use db::{Database, ResolveOptions};
+pub use error::UserError;
 pub use job::{Job, Status};
 pub use paths::Paths;
 pub use project::detect_project;

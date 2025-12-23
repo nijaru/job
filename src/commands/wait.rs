@@ -1,17 +1,18 @@
 use crate::client::DaemonClient;
 use crate::core::ipc::{Request, Response};
-use crate::core::{Database, Job, Paths, parse_duration};
+use crate::core::{Database, Job, Paths, ResolveOptions, parse_duration};
 use anyhow::Result;
 use std::time::{Duration, Instant};
 
-pub async fn execute(id: String, timeout: Option<String>) -> Result<()> {
+pub async fn execute(id: String, timeout: Option<String>, latest: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 
     // Check for orphaned jobs (dead processes still marked running)
     db.recover_orphans();
 
-    let job = db.resolve(&id)?;
+    let opts = ResolveOptions { latest };
+    let job = db.resolve_with_options(&id, &opts)?;
 
     // If already terminal, return immediately
     if job.status.is_terminal() {

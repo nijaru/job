@@ -1,4 +1,4 @@
-use crate::core::{Database, Paths};
+use crate::core::{Database, Paths, ResolveOptions};
 use anyhow::Result;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::Path;
@@ -6,14 +6,15 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-pub fn execute(id: &str, tail: Option<usize>, follow: bool) -> Result<()> {
+pub fn execute(id: &str, tail: Option<usize>, follow: bool, latest: bool) -> Result<()> {
     let paths = Paths::new();
     let db = Database::open(&paths)?;
 
     // Check for orphaned jobs (dead processes still marked running)
     db.recover_orphans();
 
-    let job = db.resolve(id)?;
+    let opts = ResolveOptions { latest };
+    let job = db.resolve_with_options(id, &opts)?;
     let log_path = paths.log_file(&job.id);
 
     if follow {
