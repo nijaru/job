@@ -109,10 +109,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.0.4] - 2025-12-19
 
-### Changed
-
-- Renamed `skills` command to `skill` (git-style singular)
-
 ### Added
 
 - Homebrew tap: `brew install nijaru/tap/jb`

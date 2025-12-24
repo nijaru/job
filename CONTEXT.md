@@ -10,7 +10,6 @@ Background job manager for AI agents. Allows agents to spawn tasks that survive 
 | Current status        | `ai/STATUS.md`    |
 | Design decisions      | `ai/DECISIONS.md` |
 | Tasks                 | `bd list`         |
-| Skills for Claude     | `skills/SKILL.md` |
 
 ## Project Structure
 
@@ -22,7 +21,6 @@ jb/
 │   ├── core/         # Types, DB, IPC protocol
 │   ├── commands/     # CLI subcommands
 │   └── daemon/       # Daemon implementation
-├── skills/           # Claude skills
 └── ai/               # Design docs
 ```
 

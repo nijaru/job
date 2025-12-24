@@ -84,12 +84,6 @@ jb completions fish --install
 jb completions zsh > ~/.zsh/completions/_jb
 ```
 
-## For AI Agents
-
-```bash
-jb skill install  # installs to ~/.claude/skills/jb/
-```
-
 ## License
 
 MIT

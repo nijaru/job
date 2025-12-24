@@ -11,7 +11,7 @@
 - Short, fast to type (2 chars)
 - No crate conflict
 - Unix philosophy of short commands
-- Binary: `jb`, Directory: `~/.jb/`, Skills: `~/.claude/skills/jb/`
+- Binary: `jb`, Directory: `~/.jb/`
 
 ---
 
@@ -65,21 +65,6 @@
 
 ---
 
-## 2024-12-16: Skills over MCP for agent integration
-
-**Context**: How should agents learn to use `jb`?
-
-**Decision**: Skills (markdown) as primary, MCP as future enhancement.
-
-**Rationale**:
-
-- Skills are portable across agent platforms
-- Growing ecosystem adoption (Claude, Cursor, etc.)
-- No infrastructure dependency
-- Good `--help` as fallback for any agent
-
----
-
 ## 2024-12-16: Rust over Go/TypeScript
 
 **Context**: Implementation language choice.
@@ -121,7 +106,6 @@
 
 - Zero friction for first use
 - Agents can't handle prompts
-- `jb skill install` is the only setup command (opt-in)
 
 ---
 

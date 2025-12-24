@@ -7,7 +7,6 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
 use core::UserError;
-use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "jb")]
@@ -135,12 +134,6 @@ enum Commands {
         all: bool,
     },
 
-    /// Install Claude skill
-    Skill {
-        #[command(subcommand)]
-        action: Option<SkillAction>,
-    },
-
     /// Run the daemon (internal use)
     #[command(hide = true)]
     Daemon,
@@ -154,18 +147,6 @@ enum Commands {
         #[arg(long)]
         install: bool,
     },
-}
-
-#[derive(Subcommand)]
-pub enum SkillAction {
-    /// Install skill to ~/.claude/skills/jb/ (or custom path)
-    Install {
-        /// Custom installation directory
-        #[arg(long)]
-        path: Option<PathBuf>,
-    },
-    /// Print skill content to stdout
-    Show,
 }
 
 #[tokio::main]
@@ -221,7 +202,6 @@ async fn run() -> Result<()> {
             status,
             all,
         } => commands::clean::execute(&older_than, status, all),
-        Commands::Skill { action } => commands::skill::execute(action),
         Commands::Daemon => commands::daemon::execute().await,
         Commands::Completions { shell, install } => commands::completions::execute(shell, install),
     }
