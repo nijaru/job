@@ -1,6 +1,10 @@
 # jb
 
-Background job manager. Run commands that persist after your terminal closes.
+[![Crates.io](https://img.shields.io/crates/v/jb)](https://crates.io/crates/jb)
+[![CI](https://github.com/nijaru/jb/actions/workflows/ci.yml/badge.svg)](https://github.com/nijaru/jb/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Run background jobs that survive terminal disconnect. Track status and retrieve output anytime.
 
 ## Install
 
